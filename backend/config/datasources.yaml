@@ -1,1 +1,167 @@
+# Data Sources Configuration
 
+# Configure all monitoring data sources
+
+sources:
+
+# Prometheus
+
+- name: prometheus-primary
+  type: prometheus
+  enabled: true
+  url: http://prometheus:9090
+  scrape_interval: 30s
+  metrics:
+  - cpu_usage
+  - memory_usage
+  - network_throughput
+  - request_latency
+    labels:
+    environment: production
+
+# Azure Monitor
+
+- name: azure-production
+  type: azure_monitor
+  enabled: false  # Enable when credentials are set
+  subscription_id: ${AZURE_SUBSCRIPTION_ID}
+  resource_groups:
+  - production-rg
+  - staging-rg
+    metrics:
+  - VM metrics
+  - AKS metrics
+  - SQL Database metrics
+  - Storage metrics
+    auth:
+    tenant_id: ${AZURE_TENANT_ID}
+    client_id: ${AZURE_CLIENT_ID}
+    client_secret: ${AZURE_CLIENT_SECRET}
+
+# AWS CloudWatch
+
+- name: aws-production
+  type: aws_cloudwatch
+  enabled: false  # Enable when credentials are set
+  region: us-east-1
+  services:
+  - ec2
+  - rds
+  - lambda
+  - ecs
+  - s3
+    metrics_namespace: AWS/EC2
+    auth:
+    access_key_id: ${AWS_ACCESS_KEY_ID}
+    secret_access_key: ${AWS_SECRET_ACCESS_KEY}
+
+# GCP Stackdriver
+
+- name: gcp-production
+  type: gcp_stackdriver
+  enabled: false
+  project_id: ${GCP_PROJECT_ID}
+  services:
+  - compute
+  - kubernetes
+  - cloudsql
+  - storage
+    auth:
+    credentials_file: ${GCP_CREDENTIALS_FILE}
+
+# Kubernetes
+
+- name: kubernetes-cluster
+  type: kubernetes
+  enabled: true
+  kubeconfig: ${KUBECONFIG}
+  namespaces:
+  - default
+  - production
+  - staging
+    metrics:
+  - pod_metrics
+  - node_metrics
+  - deployment_metrics
+  - service_metrics
+    events: true
+
+# ELK Stack
+
+- name: elasticsearch-logs
+  type: elasticsearch
+  enabled: false
+  url: http://elasticsearch:9200
+  index_pattern: “logs-*”
+  auth:
+  username: ${ES_USERNAME}
+  password: ${ES_PASSWORD}
+
+# Application Insights
+
+- name: app-insights
+  type: application_insights
+  enabled: false
+  instrumentation_key: ${APP_INSIGHTS_KEY}
+  application_id: ${APP_INSIGHTS_APP_ID}
+
+# Jaeger Tracing
+
+- name: jaeger-traces
+  type: jaeger
+  enabled: false
+  url: http://jaeger:16686
+  service_name: observability-platform
+
+# Custom REST API
+
+- name: custom-metrics
+  type: custom_http
+  enabled: false
+  url: ${CUSTOM_METRICS_URL}
+  method: GET
+  headers:
+  Authorization: Bearer ${CUSTOM_API_TOKEN}
+  interval: 60s
+
+# OpenTelemetry Collector
+
+otel_collector:
+enabled: true
+endpoint: http://otel-collector:4317
+protocol: grpc
+batch_size: 1000
+timeout: 30s
+
+# Data Retention
+
+retention:
+metrics:
+hot: 90  # days
+warm: 365  # days
+logs:
+hot: 30  # days
+warm: 90  # days
+traces:
+hot: 7  # days
+samples: 30  # days
+
+# Rate Limiting
+
+rate_limits:
+prometheus:
+requests_per_minute: 120
+azure:
+requests_per_minute: 60
+aws:
+requests_per_minute: 100
+custom:
+requests_per_minute: 30
+
+# Data Processing
+
+processing:
+normalize: true
+enrich: true
+deduplicate: true
+aggregation_interval: 60s
