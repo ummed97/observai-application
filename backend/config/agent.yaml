@@ -1,1 +1,128 @@
+# Agent Configuration
 
+# Controls behavior of all AI agents in the platform
+
+agents:
+
+# Detector Agent - Anomaly Detection
+
+detector:
+enabled: true
+detection_interval: 30  # seconds between scans
+anomaly_threshold: 2.5  # standard deviations
+min_samples: 30  # minimum data points before detection
+ml_models:
+isolation_forest:
+enabled: true
+contamination: 0.1
+statistical:
+enabled: true
+methods: [‘zscore’, ‘moving_average’, ‘exponential_smoothing’]
+
+# Diagnoser Agent - Root Cause Analysis
+
+diagnoser:
+enabled: true
+correlation_window: 300  # seconds to look back for correlations
+min_correlation_score: 0.7
+max_root_causes: 5
+nlp_enabled: true
+llm_model: “gpt-4”  # or “claude-3-opus”
+
+# Forecaster Agent - Predictive Analytics
+
+forecaster:
+enabled: true
+prediction_horizon: 7  # days ahead to forecast
+models:
+- prophet
+- arima
+- lstm
+capacity_planning:
+enabled: true
+threshold_warning: 0.8  # 80% capacity
+threshold_critical: 0.9  # 90% capacity
+failure_prediction:
+enabled: true
+min_probability: 0.6
+
+# Remediator Agent - Auto-healing
+
+remediator:
+enabled: true
+auto_execute: false  # require human approval by default
+approval_timeout: 300  # seconds before auto-reject
+allowed_actions:
+- restart_pod
+- scale_deployment
+- rollback_deployment
+- clear_cache
+- drain_node
+- adjust_resources
+restricted_actions:  # always require approval
+- delete_resource
+- modify_database
+- change_network_rules
+blast_radius_limit:
+max_pods: 10
+max_nodes: 3
+max_services: 5
+
+# Cost Agent - FinOps Optimization
+
+cost:
+enabled: true
+scan_interval: 3600  # hourly scans
+waste_detection:
+idle_threshold_days: 7
+unused_threshold_days: 30
+overprovisioned_threshold: 0.3  # 30% over capacity
+optimization_suggestions:
+enabled: true
+min_savings: 100  # minimum $100 savings to suggest
+auto_cleanup:
+enabled: false  # require approval for cost actions
+resources:
+- old_snapshots
+- unattached_disks
+- stopped_vms
+
+# Security Agent (Future)
+
+security:
+enabled: false
+threat_detection: true
+compliance_checks: true
+
+# Agent Collaboration
+
+collaboration:
+enabled: true
+max_concurrent_agents: 5
+agent_timeout: 300  # seconds
+retry_attempts: 3
+
+# Orchestration
+
+orchestration:
+priority_levels:
+critical: 1
+high: 2
+medium: 3
+low: 4
+queue_size: 1000
+
+# Logging
+
+logging:
+level: INFO
+agent_decisions: true
+performance_metrics: true
+
+# Performance
+
+performance:
+max_memory_per_agent: “2G”
+max_cpu_per_agent: 2
+cache_enabled: true
+cache_ttl: 300  # seconds
