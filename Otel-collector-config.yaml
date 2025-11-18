@@ -1,1 +1,168 @@
+# OpenTelemetry Collector Configuration
 
+# Receives, processes, and exports observability data
+
+receivers:
+
+# OTLP receiver (gRPC and HTTP)
+
+otlp:
+protocols:
+grpc:
+endpoint: 0.0.0.0:4317
+http:
+endpoint: 0.0.0.0:4318
+
+# Prometheus receiver
+
+prometheus:
+config:
+scrape_configs:
+- job_name: ‘otel-collector’
+scrape_interval: 30s
+static_configs:
+- targets: [‘localhost:8888’]
+
+# Host metrics receiver
+
+hostmetrics:
+collection_interval: 30s
+scrapers:
+cpu:
+memory:
+disk:
+network:
+filesystem:
+
+# Kubernetes receiver
+
+k8s_cluster:
+auth_type: serviceAccount
+node_conditions_to_report: [Ready, MemoryPressure, DiskPressure]
+allocatable_types_to_report: [cpu, memory, storage]
+
+processors:
+
+# Batch processor
+
+batch:
+timeout: 10s
+send_batch_size: 1024
+send_batch_max_size: 2048
+
+# Memory limiter
+
+memory_limiter:
+check_interval: 1s
+limit_mib: 512
+spike_limit_mib: 128
+
+# Resource detection
+
+resourcedetection:
+detectors: [env, system, docker]
+timeout: 5s
+
+# Attributes processor
+
+attributes:
+actions:
+- key: environment
+value: production
+action: insert
+- key: platform
+value: observability
+action: insert
+
+# Filter processor (example: drop debug logs)
+
+filter:
+logs:
+exclude:
+match_type: strict
+record_attributes:
+- key: severity
+value: DEBUG
+
+exporters:
+
+# Logging exporter (for debugging)
+
+logging:
+loglevel: info
+
+# OTLP exporter to backend
+
+otlp:
+endpoint: backend:4317
+tls:
+insecure: true
+
+# Prometheus exporter
+
+prometheus:
+endpoint: 0.0.0.0:8889
+namespace: observability
+
+# File exporter (for backup)
+
+file:
+path: /data/otel-metrics.json
+
+# PostgreSQL exporter (custom)
+
+# This would need a custom exporter plugin
+
+# postgresql:
+
+# endpoint: postgres:5432
+
+# database: observai
+
+extensions:
+
+# Health check
+
+health_check:
+endpoint: 0.0.0.0:13133
+
+# Performance profiler
+
+pprof:
+endpoint: 0.0.0.0:1777
+
+# zPages extension
+
+zpages:
+endpoint: 0.0.0.0:55679
+
+service:
+extensions: [health_check, pprof, zpages]
+
+pipelines:
+# Traces pipeline
+traces:
+receivers: [otlp]
+processors: [memory_limiter, batch, resourcedetection, attributes]
+exporters: [logging, otlp]
+
+```
+# Metrics pipeline
+metrics:
+  receivers: [otlp, prometheus, hostmetrics]
+  processors: [memory_limiter, batch, resourcedetection]
+  exporters: [logging, prometheus, otlp]
+  
+# Logs pipeline
+logs:
+  receivers: [otlp]
+  processors: [memory_limiter, batch, resourcedetection, attributes, filter]
+  exporters: [logging, otlp]
+```
+
+telemetry:
+logs:
+level: info
+metrics:
+level: detailed
+address: 0.0.0.0:8888
