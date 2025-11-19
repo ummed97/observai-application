@@ -1,8 +1,10 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import Dashboard from './pages/Dashboard'
-import TopologyView from './pages/TopologyView'
-import NLQuery from './pages/NLQuery'
+import { TopologyView } from './pages/TopologyView'
+import { NLQuery } from './pages/NLQuery'
+import Incidents from './pages/Incidents'
+import CostAnalytics from './pages/CostAnalytics'
 import Login from './pages/Login'
 
 function App() {
@@ -13,11 +15,11 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route 
-          path="/login" 
+        <Route
+          path="/login"
           element={
             isAuthenticated ? <Navigate to="/" /> : <Login onLogin={() => setIsAuthenticated(true)} />
-          } 
+          }
         />
         <Route
           path="/"
@@ -35,6 +37,18 @@ function App() {
           path="/query"
           element={
             isAuthenticated ? <NLQuery /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/incidents"
+          element={
+            isAuthenticated ? <Incidents /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/cost"
+          element={
+            isAuthenticated ? <CostAnalytics /> : <Navigate to="/login" />
           }
         />
       </Routes>
