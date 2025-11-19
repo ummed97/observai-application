@@ -127,7 +127,7 @@ class TopologyNode(BaseModel):
     name: str
     type: str  # service, database, pod, etc.
     status: str
-    metadata: Dict[str, Any]
+    node_metadata: Dict[str, Any]
     dependencies: List[str]
 
 class NLQueryRequest(BaseModel):

@@ -87,7 +87,7 @@ class TopologyNode(Base):
     name = Column(String, nullable=False)
     type = Column(String, nullable=False, index=True)  # service, database, pod, vm, etc.
     status = Column(String, nullable=False)  # healthy, warning, critical, unknown
-    metadata = Column(JSON, default={})
+    node_metadata = Column(JSON, default={})
     labels = Column(JSON, default={})
     tenant_id = Column(String, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -101,7 +101,7 @@ class TopologyEdge(Base):
     source_node_id = Column(String, ForeignKey('topology_nodes.node_id'), nullable=False)
     target_node_id = Column(String, ForeignKey('topology_nodes.node_id'), nullable=False)
     edge_type = Column(String, nullable=False)  # depends_on, calls, stores_in, etc.
-    metadata = Column(JSON, default={})
+    edge_metadata = Column(JSON, default={})
     created_at = Column(DateTime, default=datetime.utcnow)
 
     __table_args__ = (
@@ -135,7 +135,7 @@ class Prediction(Base):
     predicted_value = Column(Float)
     confidence = Column(Float)
     actual_value = Column(Float)  # for validation
-    metadata = Column(JSON)
+    prediction_metadata = Column(JSON)
     tenant_id = Column(String, index=True)
 
 class RemediationAction(Base):
@@ -202,7 +202,7 @@ class AuditLog(Base):
 # Database connection setup
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
-DATABASE_URL = "postgresql+asyncpg://observai:observai@localhost:5432/observai"
+DATABASE_URL = "postgresql+asyncpg://observai:observai@observai-postgres:5432/observai"
 engine = create_async_engine(DATABASE_URL, echo=True)
 AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
