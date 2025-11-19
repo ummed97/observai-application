@@ -92,7 +92,7 @@ sources:
   type: elasticsearch
   enabled: false
   url: http://elasticsearch:9200
-  index_pattern: “logs-*”
+  index_pattern: "logs-*"
   auth:
   username: ${ES_USERNAME}
   password: ${ES_PASSWORD}
