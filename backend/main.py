@@ -168,6 +168,10 @@ async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
 
+# ===== ROUTERS =====
+from routers import auth
+app.include_router(auth.router)
+
 # ===== HEALTH CHECK =====
 
 @app.get("/health")

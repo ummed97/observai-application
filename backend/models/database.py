@@ -198,3 +198,14 @@ class AuditLog(Base):
     ip_address = Column(String)
     timestamp = Column(DateTime, default=datetime.utcnow, index=True)
     tenant_id = Column(String, index=True)
+
+# Database connection setup
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+
+DATABASE_URL = "postgresql+asyncpg://observai:observai@localhost:5432/observai"
+engine = create_async_engine(DATABASE_URL, echo=True)
+AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session
