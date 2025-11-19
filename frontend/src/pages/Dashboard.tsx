@@ -77,6 +77,11 @@ export const Dashboard: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       const token = localStorage.getItem('auth_token');
+      if (!token) {
+        console.error('No auth token found');
+        return;
+      }
+
       const headers = {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -84,16 +89,26 @@ export const Dashboard: React.FC = () => {
 
       // Fetch incidents
       const incidentsRes = await fetch(`${API_BASE}/api/v1/incidents?limit=10`, { headers });
-      const incidentsData = await incidentsRes.json();
-      setIncidents(incidentsData);
+      if (incidentsRes.ok) {
+        const incidentsData = await incidentsRes.json();
+        setIncidents(Array.isArray(incidentsData) ? incidentsData : []);
+      } else {
+        console.error('Failed to fetch incidents:', incidentsRes.status);
+        setIncidents([]);
+      }
 
       // Fetch agent statuses
       const agentsRes = await fetch(`${API_BASE}/api/v1/agents`, { headers });
-      const agentsData = await agentsRes.json();
-      setAgents(agentsData);
+      if (agentsRes.ok) {
+        const agentsData = await agentsRes.json();
+        setAgents(Array.isArray(agentsData) ? agentsData : []);
+      } else {
+        console.error('Failed to fetch agents:', agentsRes.status);
+        setAgents([]);
+      }
 
       // Calculate system health
-      const health = calculateSystemHealth(incidentsData, agentsData);
+      const health = calculateSystemHealth(incidents, agents);
       setSystemHealth(health);
 
     } catch (error) {
