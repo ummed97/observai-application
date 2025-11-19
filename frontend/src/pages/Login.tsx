@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-export const Login: React.FC = () => {
+interface LoginProps {
+  onLogin: () => void;
+}
+
+export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -26,6 +30,7 @@ export const Login: React.FC = () => {
 
       const data = await response.json();
       localStorage.setItem('auth_token', data.access_token);
+      onLogin();
       navigate('/');
     } catch (err) {
       setError('Invalid email or password');
