@@ -16,7 +16,7 @@ interface Message {
   confidence?: number;
 }
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const EXAMPLE_QUERIES = [
   "Why did API latency increase in the last hour?",
@@ -211,8 +211,8 @@ export const NLQuery: React.FC = () => {
             >
               <div
                 className={`max-w-3xl rounded-lg p-4 ${message.type === 'user'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white shadow border border-gray-200'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white shadow border border-gray-200'
                   }`}
               >
                 <div className={`prose ${message.type === 'user' ? 'prose-invert' : ''} max-w-none`}>

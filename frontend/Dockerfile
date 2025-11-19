@@ -3,7 +3,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --legacy-peer-deps || npm install
 COPY . .
-RUN npm run build || mkdir -p build && echo '<html><body><h1>AI Platform</h1></body></html>' > build/index.html
+RUN npm run build
 
 FROM nginx:alpine
 COPY --from=build /app/build /usr/share/nginx/html

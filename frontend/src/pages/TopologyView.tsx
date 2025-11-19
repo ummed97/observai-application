@@ -25,7 +25,7 @@ interface GraphData {
   edges: TopologyEdge[];
 }
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export const TopologyView: React.FC = () => {
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], edges: [] });

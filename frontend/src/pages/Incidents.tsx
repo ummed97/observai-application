@@ -12,7 +12,7 @@ interface Incident {
   remediation_steps?: string[];
 }
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const Incidents: React.FC = () => {
   const [incidents, setIncidents] = useState<Incident[]>([]);
@@ -85,8 +85,8 @@ const Incidents: React.FC = () => {
             key={status}
             onClick={() => setFilter(status)}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${filter === status
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+              ? 'bg-blue-600 text-white'
+              : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
               }`}
           >
             {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -121,8 +121,8 @@ const Incidents: React.FC = () => {
                     <h3 className="text-xl font-semibold text-gray-900">{incident.title}</h3>
                   </div>
                   <div className={`px-4 py-2 rounded-full text-sm font-medium ${incident.status === 'resolved' ? 'bg-green-100 text-green-800' :
-                      incident.status === 'investigating' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
+                    incident.status === 'investigating' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
                     }`}>
                     {incident.status.charAt(0).toUpperCase() + incident.status.slice(1)}
                   </div>
