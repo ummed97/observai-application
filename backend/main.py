@@ -21,6 +21,7 @@ import jwt
 from agents.orchestrator import AgentOrchestrator
 from data_ingestion.collector import DataCollector
 from knowledge_graph.graph_engine import KnowledgeGraphEngine
+from routers.auth import router as auth_router
 
 # Logging setup
 
@@ -88,6 +89,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(auth_router)
 
 # ===== MODELS =====
 

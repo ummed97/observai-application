@@ -7,9 +7,12 @@ import './Login3D.css'; // Reusing the same styles
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export const Signup3D: React.FC = () => {
+    const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -20,18 +23,34 @@ export const Signup3D: React.FC = () => {
         setError('');
         setLoading(true);
 
-        // Basic validation
+        // Validation
+        if (!fullName.trim()) {
+            setError('Full name is required');
+            setLoading(false);
+            return;
+        }
+
         if (password.length < 6) {
             setError('Password must be at least 6 characters long');
             setLoading(false);
             return;
         }
 
+        if (password !== confirmPassword) {
+            setError('Passwords do not match');
+            setLoading(false);
+            return;
+        }
+
         try {
-            const response = await fetch(`${API_BASE}/api/v1/auth/signup`, {
+            const response = await fetch(`${API_BASE}/api/v1/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({
+                    full_name: fullName,
+                    email,
+                    password
+                }),
             });
 
             const data = await response.json();
@@ -87,6 +106,20 @@ export const Signup3D: React.FC = () => {
                     {/* Signup Form */}
                     <form onSubmit={handleSubmit} className="login3d-form">
                         <div className="login3d-input-group">
+                            <label htmlFor="fullName" className="login3d-label">Full Name</label>
+                            <input
+                                id="fullName"
+                                type="text"
+                                value={fullName}
+                                onChange={(e) => setFullName(e.target.value)}
+                                className="login3d-input"
+                                placeholder="Enter your full name"
+                                required
+                                autoComplete="name"
+                            />
+                        </div>
+
+                        <div className="login3d-input-group">
                             <label htmlFor="email" className="login3d-label">Email</label>
                             <input
                                 id="email"
@@ -121,6 +154,31 @@ export const Signup3D: React.FC = () => {
                                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                                 >
                                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="login3d-input-group">
+                            <label htmlFor="confirmPassword" className="login3d-label">Confirm Password</label>
+                            <div className="login3d-password-wrapper">
+                                <input
+                                    id="confirmPassword"
+                                    type={showConfirmPassword ? 'text' : 'password'}
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    className="login3d-input"
+                                    placeholder="Confirm your password"
+                                    required
+                                    autoComplete="new-password"
+                                    minLength={6}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="login3d-password-toggle"
+                                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                                >
+                                    {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                 </button>
                             </div>
                         </div>
