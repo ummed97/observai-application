@@ -171,13 +171,38 @@ export const Dashboard: React.FC = () => {
 
   const getHealthColor = (health: number) => {
     if (health >= 90) return 'text-green-600';
-                </div >
-              </div >
-            </div >
-          </div >
+    if (health >= 70) return 'text-yellow-600';
+    if (health >= 50) return 'text-orange-600';
+    return 'text-red-600';
+  };
 
-  {/* System Health Overview */ }
-  < div className = "grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" >
+  const activeIncidents = incidents.filter(i => i.status !== 'resolved');
+  const criticalCount = activeIncidents.filter(i => i.severity === 'critical').length;
+
+  return (
+    <div className="flex h-screen bg-gray-50">
+      <Sidebar />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header userEmail={userEmail} />
+        <div className="flex-1 overflow-auto p-8">
+          {/* Header Section */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">AI-Agentic Observability Platform</h1>
+                <p className="text-gray-600 mt-1">Unified monitoring with autonomous AI agents</p>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className={`flex items-center space-x-2 ${wsConnected ? 'text-green-600' : 'text-red-600'}`}>
+                  <div className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-green-600' : 'bg-red-600'} animate-pulse`}></div>
+                  <span className="text-sm">{wsConnected ? 'Connected' : 'Disconnected'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* System Health Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -228,12 +253,12 @@ export const Dashboard: React.FC = () => {
                 <CheckCircle className="w-12 h-12 text-green-500" />
               </div>
             </div>
-          </div >
+          </div>
 
-  {/* Main Content Grid */ }
-  < div className = "grid grid-cols-1 lg:grid-cols-3 gap-6" >
-    {/* Recent Incidents */ }
-    < div className = "lg:col-span-2 bg-white rounded-lg shadow" >
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Recent Incidents */}
+            <div className="lg:col-span-2 bg-white rounded-lg shadow">
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-xl font-semibold text-gray-900">Recent Incidents</h2>
               </div>
@@ -285,10 +310,10 @@ export const Dashboard: React.FC = () => {
                   </div>
                 )}
               </div>
-            </div >
+            </div>
 
-  {/* AI Agents Status */ }
-  < div className = "bg-white rounded-lg shadow" >
+            {/* AI Agents Status */}
+            <div className="bg-white rounded-lg shadow">
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-xl font-semibold text-gray-900">AI Agents</h2>
               </div>
@@ -322,32 +347,30 @@ export const Dashboard: React.FC = () => {
                   ))}
                 </div>
               </div>
-            </div >
-          </div >
+            </div>
+          </div>
 
-  {/* Real-time Metrics Chart */ }
-{
-  metrics.length > 0 && (
-    <div className="mt-6 bg-white rounded-lg shadow p-6">
-      <h2 className="text-xl font-semibold text-gray-900 mb-4">Real-time System Metrics</h2>
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={metrics}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="timestamp" />
-          <YAxis />
-          <Tooltip />
-          <Legend />
-          <Line type="monotone" dataKey="cpu" stroke="#3b82f6" name="CPU %" />
-          <Line type="monotone" dataKey="memory" stroke="#10b981" name="Memory %" />
-          <Line type="monotone" dataKey="latency" stroke="#f59e0b" name="Latency (ms)" />
-        </LineChart>
-      </ResponsiveContainer>
+          {/* Real-time Metrics Chart */}
+          {metrics.length > 0 && (
+            <div className="mt-6 bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Real-time System Metrics</h2>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={metrics}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="timestamp" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="cpu" stroke="#3b82f6" name="CPU %" />
+                  <Line type="monotone" dataKey="memory" stroke="#10b981" name="Memory %" />
+                  <Line type="monotone" dataKey="latency" stroke="#f59e0b" name="Latency (ms)" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
-  )
-}
-        </div >
-      </div >
-    </div >
   );
 };
 

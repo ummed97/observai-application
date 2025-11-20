@@ -38,21 +38,10 @@ const Incidents: React.FC = () => {
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (response.ok) {
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          setIncidents(data);
-        } else {
-          setIncidents([]);
-          console.error('Received non-array data for incidents:', data);
-        }
-      } else {
-        console.error('Failed to fetch incidents:', response.statusText);
-        setIncidents([]);
-      }
+      const data = await response.json();
+      setIncidents(data);
     } catch (error) {
       console.error('Error fetching incidents:', error);
-      setIncidents([]);
     } finally {
       setLoading(false);
     }
@@ -83,7 +72,7 @@ const Incidents: React.FC = () => {
       <div className="flex h-screen bg-gray-50">
         <Sidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
-          <Header />
+          <Header userEmail={userEmail} />
           <div className="flex items-center justify-center h-full">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
@@ -96,7 +85,7 @@ const Incidents: React.FC = () => {
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
+        <Header userEmail={userEmail} />
         <div className="flex-1 overflow-auto p-6">
           {/* Header */}
           <div className="mb-6">

@@ -187,6 +187,32 @@ export const NLQuery: React.FC = () => {
                   </tr>
                 ))}
               </tbody>
+            </table>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="flex h-screen bg-gray-50">
+      <Sidebar />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header userEmail={userEmail} />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="bg-white shadow-sm border-b border-gray-200 p-4">
+            <div className="max-w-4xl mx-auto">
+              <h1 className="text-2xl font-bold text-gray-900">Natural Language Query</h1>
+              <p className="text-gray-600 text-sm mt-1">Ask questions about your infrastructure in plain English</p>
+            </div>
+          </div>
+
+          {/* Messages Container */}
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="max-w-4xl mx-auto space-y-4">
               {messages.map(message => (
                 <div
                   key={message.id}
@@ -241,58 +267,56 @@ export const NLQuery: React.FC = () => {
               )}
 
               <div ref={messagesEndRef} />
+            </div>
           </div>
-          </div >
 
-  {/* Example Queries */ }
-{
-  messages.length === 1 && (
-    <div className="p-4 bg-gray-100 border-t border-gray-200">
-      <div className="max-w-4xl mx-auto">
-        <p className="text-sm text-gray-600 mb-3">Try asking:</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {EXAMPLE_QUERIES.map((query, idx) => (
-            <button
-              key={idx}
-              onClick={() => handleExampleClick(query)}
-              className="text-left text-sm bg-white hover:bg-gray-50 border border-gray-300 rounded-lg p-3 transition-colors"
-            >
-              {query}
-            </button>
-          ))}
+          {/* Example Queries */}
+          {messages.length === 1 && (
+            <div className="p-4 bg-gray-100 border-t border-gray-200">
+              <div className="max-w-4xl mx-auto">
+                <p className="text-sm text-gray-600 mb-3">Try asking:</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {EXAMPLE_QUERIES.map((query, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleExampleClick(query)}
+                      className="text-left text-sm bg-white hover:bg-gray-50 border border-gray-300 rounded-lg p-3 transition-colors"
+                    >
+                      {query}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Input Area */}
+          <div className="bg-white border-t border-gray-200 p-4">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex items-end space-x-2">
+                <div className="flex-1 relative">
+                  <textarea
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    placeholder="Ask a question..."
+                    className="w-full border border-gray-300 rounded-lg p-3 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    rows={1}
+                    style={{ minHeight: '44px', maxHeight: '120px' }}
+                  />
+                  <button
+                    onClick={sendQuery}
+                    disabled={!input.trim() || loading}
+                    className="absolute right-2 bottom-2 p-1.5 text-blue-600 hover:bg-blue-50 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Send className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  )
-}
-
-{/* Input Area */ }
-<div className="bg-white border-t border-gray-200 p-4">
-  <div className="max-w-4xl mx-auto">
-    <div className="flex items-end space-x-2">
-      <div className="flex-1 relative">
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyPress}
-          placeholder="Ask a question..."
-          className="w-full border border-gray-300 rounded-lg p-3 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-          rows={1}
-          style={{ minHeight: '44px', maxHeight: '120px' }}
-        />
-        <button
-          onClick={sendQuery}
-          disabled={!input.trim() || loading}
-          className="absolute right-2 bottom-2 p-1.5 text-blue-600 hover:bg-blue-50 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Send className="w-5 h-5" />
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-        </div >
-      </div >
-    </div >
   );
 };
