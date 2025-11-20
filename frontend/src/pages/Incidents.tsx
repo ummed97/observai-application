@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, CheckCircle, Clock, XCircle } from 'lucide-react';
+import Header from '../components/common/Header';
+import Sidebar from '../components/common/Sidebar';
 
 interface Incident {
   id: string;
@@ -18,8 +20,11 @@ const Incidents: React.FC = () => {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
+  const [userEmail, setUserEmail] = useState<string>('');
 
   useEffect(() => {
+    const email = localStorage.getItem('user_email');
+    if (email) setUserEmail(email);
     fetchIncidents();
   }, [filter]);
 
@@ -64,107 +69,119 @@ const Incidents: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex h-screen bg-gray-50">
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Header userEmail={userEmail} />
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Incidents</h1>
-        <p className="text-gray-600 mt-1">Track and manage infrastructure incidents</p>
-      </div>
-
-      {/* Filters */}
-      <div className="mb-6 flex space-x-2">
-        {['all', 'open', 'investigating', 'resolved'].map((status) => (
-          <button
-            key={status}
-            onClick={() => setFilter(status)}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${filter === status
-              ? 'bg-blue-600 text-white'
-              : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
-              }`}
-          >
-            {status.charAt(0).toUpperCase() + status.slice(1)}
-          </button>
-        ))}
-      </div>
-
-      {/* Incidents List */}
-      <div className="space-y-4">
-        {incidents.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-12 text-center">
-            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Incidents</h3>
-            <p className="text-gray-600">All systems are operating normally!</p>
+    <div className="flex h-screen bg-gray-50">
+      <Sidebar />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header userEmail={userEmail} />
+        <div className="flex-1 overflow-auto p-6">
+          {/* Header */}
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-gray-900">Incidents</h1>
+            <p className="text-gray-600 mt-1">Track and manage infrastructure incidents</p>
           </div>
-        ) : (
-          incidents.map((incident) => (
-            <div key={incident.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow">
-              <div className="p-6">
-                {/* Header */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      {getStatusIcon(incident.status)}
-                      <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${getSeverityColor(incident.severity)}`}>
-                        {incident.severity.toUpperCase()}
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        {new Date(incident.created_at).toLocaleString()}
-                      </span>
+
+          {/* Filters */}
+          <div className="mb-6 flex space-x-2">
+            {['all', 'open', 'investigating', 'resolved'].map((status) => (
+              <button
+                key={status}
+                onClick={() => setFilter(status)}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${filter === status
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                  }`}
+              >
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {/* Incidents List */}
+          <div className="space-y-4">
+            {incidents.length === 0 ? (
+              <div className="bg-white rounded-lg shadow p-12 text-center">
+                <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">No Incidents</h3>
+                <p className="text-gray-600">All systems are operating normally!</p>
+              </div>
+            ) : (
+              incidents.map((incident) => (
+                <div key={incident.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow">
+                  <div className="p-6">
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          {getStatusIcon(incident.status)}
+                          <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${getSeverityColor(incident.severity)}`}>
+                            {incident.severity.toUpperCase()}
+                          </span>
+                          <span className="text-sm text-gray-500">
+                            {new Date(incident.created_at).toLocaleString()}
+                          </span>
+                        </div>
+                        <h3 className="text-xl font-semibold text-gray-900">{incident.title}</h3>
+                      </div>
+                      <div className={`px-4 py-2 rounded-full text-sm font-medium ${incident.status === 'resolved' ? 'bg-green-100 text-green-800' :
+                        incident.status === 'investigating' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                        {incident.status.charAt(0).toUpperCase() + incident.status.slice(1)}
+                      </div>
                     </div>
-                    <h3 className="text-xl font-semibold text-gray-900">{incident.title}</h3>
-                  </div>
-                  <div className={`px-4 py-2 rounded-full text-sm font-medium ${incident.status === 'resolved' ? 'bg-green-100 text-green-800' :
-                    incident.status === 'investigating' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                    {incident.status.charAt(0).toUpperCase() + incident.status.slice(1)}
+
+                    {/* Root Cause */}
+                    {incident.root_cause && (
+                      <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <h4 className="font-semibold text-blue-900 mb-1">Root Cause</h4>
+                        <p className="text-sm text-blue-800">{incident.root_cause}</p>
+                      </div>
+                    )}
+
+                    {/* Affected Services */}
+                    {incident.affected_services.length > 0 && (
+                      <div className="mb-4">
+                        <h4 className="font-semibold text-gray-900 mb-2">Affected Services</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {incident.affected_services.map((service, idx) => (
+                            <span key={idx} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">
+                              {service}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Remediation Steps */}
+                    {incident.remediation_steps && incident.remediation_steps.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-2">Remediation Steps</h4>
+                        <ol className="list-decimal list-inside space-y-1 text-sm text-gray-700">
+                          {incident.remediation_steps.map((step, idx) => (
+                            <li key={idx}>{step}</li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
                   </div>
                 </div>
-
-                {/* Root Cause */}
-                {incident.root_cause && (
-                  <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <h4 className="font-semibold text-blue-900 mb-1">Root Cause</h4>
-                    <p className="text-sm text-blue-800">{incident.root_cause}</p>
-                  </div>
-                )}
-
-                {/* Affected Services */}
-                {incident.affected_services.length > 0 && (
-                  <div className="mb-4">
-                    <h4 className="font-semibold text-gray-900 mb-2">Affected Services</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {incident.affected_services.map((service, idx) => (
-                        <span key={idx} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">
-                          {service}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Remediation Steps */}
-                {incident.remediation_steps && incident.remediation_steps.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-2">Remediation Steps</h4>
-                    <ol className="list-decimal list-inside space-y-1 text-sm text-gray-700">
-                      {incident.remediation_steps.map((step, idx) => (
-                        <li key={idx}>{step}</li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))
-        )}
+              ))
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
