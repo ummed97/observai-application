@@ -217,46 +217,60 @@ class DiagnoserAgent:
             "timestamp": datetime.utcnow().isoformat()
         }
     
-    async def _get_available_llm(self):
+    async def _get_available_llm(self, skip_providers=None):
         """
         Get an available LLM with automatic fallback.
         Tries each LLM in order and returns the first one that works.
+        
+        Args:
+            skip_providers: List of provider names to skip (e.g., ['openai', 'gemini'])
         """
-        # Try OpenAI first
-        if os.getenv("OPENAI_API_KEY"):
+        if skip_providers is None:
+            skip_providers = []
+        
+        # Try OpenAI first (unless we're skipping it)
+        if 'openai' not in skip_providers and os.getenv("OPENAI_API_KEY"):
             try:
                 test_llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
-                # Quick test to see if it works
-                return test_llm
+                logger.info("Fallback: Using OpenAI")
+                return test_llm, 'openai'
             except Exception as e:
                 logger.warning(f"OpenAI not available: {e}")
         
-        # Try Google Gemini
-        if os.getenv("GOOGLE_API_KEY"):
+        # Try Google Gemini (unless we're skipping it)
+        if 'gemini' not in skip_providers and os.getenv("GOOGLE_API_KEY"):
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
                 test_llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.1)
-                return test_llm
+                logger.info("Fallback: Using Google Gemini")
+                return test_llm, 'gemini'
             except Exception as e:
                 logger.warning(f"Google Gemini not available: {e}")
         
-        # Try Anthropic
-        if os.getenv("ANTHROPIC_API_KEY"):
+        # Try Anthropic (unless we're skipping it)
+        if 'anthropic' not in skip_providers and os.getenv("ANTHROPIC_API_KEY"):
             try:
                 test_llm = ChatAnthropic(model="claude-3-5-sonnet-20241022", temperature=0.1)
-                return test_llm
+                logger.info("Fallback: Using Anthropic Claude")
+                return test_llm, 'anthropic'
             except Exception as e:
                 logger.warning(f"Anthropic not available: {e}")
         
-        # Try Ollama (local)
-        try:
-            from langchain_community.chat_models import ChatOllama
-            test_llm = ChatOllama(model="llama3.2", temperature=0.1)
-            return test_llm
-        except Exception as e:
-            logger.warning(f"Ollama not available: {e}")
+        # Try Ollama (local) - unless we're skipping it
+        if 'ollama' not in skip_providers:
+            try:
+                from langchain_community.chat_models import ChatOllama
+                test_llm = ChatOllama(
+                    model="llama3.2",
+                    temperature=0.1,
+                    base_url="http://localhost:11434"  # Explicit Ollama URL
+                )
+                logger.info("Fallback: Using Ollama (local)")
+                return test_llm, 'ollama'
+            except Exception as e:
+                logger.warning(f"Ollama not available: {e}")
         
-        return None
+        return None, None
     
     async def process_nl_query(
         self,
@@ -274,10 +288,11 @@ class DiagnoserAgent:
             
             # Try with primary LLM first
             llm_to_use = self.llm
-            attempt = 0
+            current_provider = 'openai'  # Assume primary is OpenAI
+            failed_providers = []
             max_attempts = 4  # Try all available LLMs
             
-            while attempt < max_attempts:
+            for attempt in range(max_attempts):
                 try:
                     # Create chain with current LLM
                     chain = self.nl_query_prompt | llm_to_use | self.nl_parser
@@ -303,15 +318,20 @@ class DiagnoserAgent:
                     error_str = str(e)
                     # Check if it's a quota/rate limit error
                     if "429" in error_str or "quota" in error_str.lower() or "rate" in error_str.lower():
-                        logger.warning(f"LLM quota/rate limit hit, trying fallback: {e}")
-                        # Try to get a different LLM
-                        llm_to_use = await self._get_available_llm()
+                        logger.warning(f"LLM {current_provider} quota/rate limit hit, trying fallback")
+                        # Mark current provider as failed
+                        failed_providers.append(current_provider)
+                        # Try to get a different LLM, skipping failed ones
+                        llm_to_use, current_provider = await self._get_available_llm(skip_providers=failed_providers)
                         if llm_to_use is None:
-                            raise Exception("No LLM available")
-                        attempt += 1
+                            raise Exception("No LLM available - all providers failed or quota exceeded")
                     else:
-                        # Other error, re-raise
-                        raise
+                        # Other error, log and try fallback anyway
+                        logger.error(f"LLM error: {e}")
+                        failed_providers.append(current_provider)
+                        llm_to_use, current_provider = await self._get_available_llm(skip_providers=failed_providers)
+                        if llm_to_use is None:
+                            raise
             
             # If we exhausted all attempts
             raise Exception("All LLMs failed or quota exceeded")
