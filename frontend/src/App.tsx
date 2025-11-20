@@ -5,7 +5,8 @@ import { TopologyView } from './pages/TopologyView'
 import { NLQuery } from './pages/NLQuery'
 import Incidents from './pages/Incidents'
 import CostAnalytics from './pages/CostAnalytics'
-import Login from './pages/Login'
+import Login3D from './pages/Login3D'
+import Signup3D from './pages/Signup3D'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = React.useState(() => {
@@ -18,11 +19,23 @@ function App() {
         <Route
           path="/login"
           element={
-            isAuthenticated ? <Navigate to="/" /> : <Login onLogin={() => setIsAuthenticated(true)} />
+            isAuthenticated ? <Navigate to="/" /> : <Login3D />
+          }
+        />
+        <Route
+          path="/signup"
+          element={
+            isAuthenticated ? <Navigate to="/" /> : <Signup3D />
           }
         />
         <Route
           path="/"
+          element={
+            isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/dashboard"
           element={
             isAuthenticated ? <Dashboard /> : <Navigate to="/login" />
           }
