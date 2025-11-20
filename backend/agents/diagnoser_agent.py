@@ -68,12 +68,12 @@ class DiagnoserAgent:
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
                 self.llm = ChatGoogleGenerativeAI(
-                    model="gemini-pro",
+                    model="models/gemini-1.0-pro",
                     temperature=0.1,
                     convert_system_message_to_human=True  # Required for Gemini
                 )
                 llm_initialized = True
-                logger.info("Using Google Gemini (gemini-pro)")
+                logger.info("Using Google Gemini (gemini-1.0-pro)")
             except Exception as e:
                 logger.warning(f"Google Gemini not available: {e}")
         
@@ -243,7 +243,7 @@ class DiagnoserAgent:
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
                 test_llm = ChatGoogleGenerativeAI(
-                    model="gemini-pro",
+                    model="models/gemini-1.0-pro",
                     temperature=0.1,
                     convert_system_message_to_human=True  # Required for Gemini
                 )
