@@ -45,7 +45,7 @@ websocket_connections: List[WebSocket] = []
 # Security
 
 security = HTTPBearer()
-SECRET_KEY = "your-secret-key-change-in-production"
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
 ALGORITHM = "HS256"
 
 @asynccontextmanager
