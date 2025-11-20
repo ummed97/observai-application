@@ -4,6 +4,7 @@ Uses AI to correlate signals and determine root causes
 """
 import asyncio
 import logging
+import os
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
 import json
@@ -46,18 +47,63 @@ class DiagnoserAgent:
         self.diagnoses_performed = 0
         self.last_action = None
         
-        # Initialize LLM
-        try:
-            self.llm = ChatOpenAI(
-                model="gpt-4o",
-                temperature=0.1
-            )
-        except Exception as e:
-            logger.warning(f"OpenAI not available, trying Anthropic: {e}")
-            self.llm = ChatAnthropic(
-                model="claude-3-5-sonnet-20241022",
-                temperature=0.1
-            )
+        # Initialize LLM with fallback chain
+        # Try OpenAI -> Google Gemini (free tier) -> Anthropic -> Ollama (local/free)
+        llm_initialized = False
+        
+        # Try OpenAI first
+        if not llm_initialized and os.getenv("OPENAI_API_KEY"):
+            try:
+                self.llm = ChatOpenAI(
+                    model="gpt-4o",
+                    temperature=0.1
+                )
+                llm_initialized = True
+                logger.info("Using OpenAI (gpt-4o)")
+            except Exception as e:
+                logger.warning(f"OpenAI not available: {e}")
+        
+        # Try Google Gemini (free tier - 15 requests/min, 1M tokens/day)
+        if not llm_initialized and os.getenv("GOOGLE_API_KEY"):
+            try:
+                from langchain_google_genai import ChatGoogleGenerativeAI
+                self.llm = ChatGoogleGenerativeAI(
+                    model="gemini-1.5-flash",
+                    temperature=0.1
+                )
+                llm_initialized = True
+                logger.info("Using Google Gemini (gemini-1.5-flash)")
+            except Exception as e:
+                logger.warning(f"Google Gemini not available: {e}")
+        
+        # Try Anthropic
+        if not llm_initialized and os.getenv("ANTHROPIC_API_KEY"):
+            try:
+                self.llm = ChatAnthropic(
+                    model="claude-3-5-sonnet-20241022",
+                    temperature=0.1
+                )
+                llm_initialized = True
+                logger.info("Using Anthropic Claude")
+            except Exception as e:
+                logger.warning(f"Anthropic not available: {e}")
+        
+        # Try Ollama (local, completely free)
+        if not llm_initialized:
+            try:
+                from langchain_community.llms import Ollama
+                from langchain.chat_models import ChatOllama
+                self.llm = ChatOllama(
+                    model="llama3.2",
+                    temperature=0.1
+                )
+                llm_initialized = True
+                logger.info("Using Ollama (llama3.2) - local/free")
+            except Exception as e:
+                logger.warning(f"Ollama not available: {e}")
+                # Fallback to a simple mock response
+                logger.error("No LLM available! Install Ollama or add API keys.")
+                self.llm = None
         
         # Initialize output parser
         self.diagnosis_parser = PydanticOutputParser(pydantic_object=DiagnosisResult)

@@ -45,6 +45,7 @@ email-validator==2.1.0
 # ===== AI/LLM APIs =====
 openai==1.12.0
 anthropic==0.18.1
+google-generativeai==0.3.2
 
 # ===== LangChain (Agent Framework) =====
 # Using LangChain instead of CrewAI to avoid dependency hell
@@ -52,6 +53,7 @@ langchain==0.1.9
 langchain-core==0.1.27
 langchain-openai==0.0.6
 langchain-anthropic==0.1.4
+langchain-google-genai==0.0.5
 langchain-community==0.0.24
 langgraph==0.0.25
 langsmith==0.1.15
