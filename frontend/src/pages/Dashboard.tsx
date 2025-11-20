@@ -183,7 +183,7 @@ export const Dashboard: React.FC = () => {
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header userEmail={userEmail} />
+        <Header />
         <div className="flex-1 overflow-auto p-8">
           {/* Header Section */}
           <div className="mb-8">

@@ -190,7 +190,7 @@ export const TopologyView: React.FC = () => {
       <div className="flex h-screen bg-gray-50">
         <Sidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
-          <Header userEmail={userEmail} />
+          <Header />
           <div className="flex items-center justify-center h-full">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
@@ -203,7 +203,7 @@ export const TopologyView: React.FC = () => {
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header userEmail={userEmail} />
+        <Header />
         <div className="flex-1 overflow-auto p-6">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-gray-900">Infrastructure Topology</h1>

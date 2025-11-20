@@ -200,7 +200,7 @@ export const NLQuery: React.FC = () => {
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header userEmail={userEmail} />
+        <Header />
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Header */}
           <div className="bg-white shadow-sm border-b border-gray-200 p-4">
