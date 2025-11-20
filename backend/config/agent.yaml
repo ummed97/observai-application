@@ -17,7 +17,7 @@ enabled: true
 contamination: 0.1
 statistical:
 enabled: true
-methods: [‘zscore’, ‘moving_average’, ‘exponential_smoothing’]
+methods: ['zscore', 'moving_average', 'exponential_smoothing']
 
 # Diagnoser Agent - Root Cause Analysis
 
@@ -27,7 +27,7 @@ correlation_window: 300  # seconds to look back for correlations
 min_correlation_score: 0.7
 max_root_causes: 5
 nlp_enabled: true
-llm_model: “gpt-4”  # or “claude-3-opus”
+llm_model: "gpt-4"  # or "claude-3-opus"
 
 # Forecaster Agent - Predictive Analytics
 
@@ -122,7 +122,7 @@ performance_metrics: true
 # Performance
 
 performance:
-max_memory_per_agent: “2G”
+max_memory_per_agent: "2G"
 max_cpu_per_agent: 2
 cache_enabled: true
 cache_ttl: 300  # seconds
