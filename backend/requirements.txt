@@ -27,6 +27,13 @@ neo4j==5.17.0
 # ===== Time-Series Database =====
 influxdb-client==1.40.0
 
+# ===== Azure SDKs =====
+azure-identity==1.15.0
+azure-mgmt-monitor==6.0.2
+azure-mgmt-costmanagement==4.0.1
+azure-mgmt-resource==23.0.1
+azure-core==1.29.5
+
 # ===== Authentication & Security =====
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4

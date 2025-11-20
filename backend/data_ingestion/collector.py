@@ -8,6 +8,7 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
 from collections import defaultdict
 import asyncpg
+from data_ingestion.azure_collector import AzureMonitorCollector
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ class DataCollector:
         self.running = False
         self.metrics_buffer = defaultdict(list)
         self.db_pool: Optional[asyncpg.Pool] = None
+        self.azure_collector = AzureMonitorCollector()
     
     async def start(self):
         """Start the data collector"""
@@ -147,6 +149,13 @@ class DataCollector:
         while self.running:
             try:
                 await asyncio.sleep(60)  # Flush every minute
+                
+                # Collect Azure Metrics periodically
+                if self.azure_collector.enabled:
+                    azure_metrics = await self.azure_collector.collect_metrics()
+                    if azure_metrics:
+                        await self.ingest_metrics(azure_metrics)
+                        logger.info(f"Collected {len(azure_metrics)} Azure metrics")
                 
                 # Process buffered metrics
                 for metric_name, metrics in self.metrics_buffer.items():
