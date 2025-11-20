@@ -1,15 +1,3 @@
-"""
-AI-Agentic Observability Platform - Main Application
-FastAPI backend with multi-agent system
-"""
-from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from contextlib import asynccontextmanager
-from datetime import datetime, timedelta
-from typing import List, Optional, Dict, Any
-import asyncio
-import logging
 import json
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
