@@ -69,7 +69,8 @@ class DiagnoserAgent:
                 from langchain_google_genai import ChatGoogleGenerativeAI
                 self.llm = ChatGoogleGenerativeAI(
                     model="gemini-1.5-flash",
-                    temperature=0.1
+                    temperature=0.1,
+                    convert_system_message_to_human=True  # Required for Gemini
                 )
                 llm_initialized = True
                 logger.info("Using Google Gemini (gemini-1.5-flash)")
@@ -241,7 +242,11 @@ class DiagnoserAgent:
         if 'gemini' not in skip_providers and os.getenv("GOOGLE_API_KEY"):
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
-                test_llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.1)
+                test_llm = ChatGoogleGenerativeAI(
+                    model="gemini-1.5-flash",
+                    temperature=0.1,
+                    convert_system_message_to_human=True  # Required for Gemini
+                )
                 logger.info("Fallback: Using Google Gemini")
                 return test_llm, 'gemini'
             except Exception as e:
@@ -260,10 +265,13 @@ class DiagnoserAgent:
         if 'ollama' not in skip_providers:
             try:
                 from langchain_community.chat_models import ChatOllama
+                # Use host.docker.internal to reach host from Docker container
+                # Falls back to localhost if not in Docker
+                ollama_url = "http://host.docker.internal:11434"
                 test_llm = ChatOllama(
                     model="llama3.2",
                     temperature=0.1,
-                    base_url="http://localhost:11434"  # Explicit Ollama URL
+                    base_url=ollama_url
                 )
                 logger.info("Fallback: Using Ollama (local)")
                 return test_llm, 'ollama'
