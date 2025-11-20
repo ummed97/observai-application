@@ -31,7 +31,7 @@ export const Login3D: React.FC = () => {
             if (response.ok && data.access_token) {
                 localStorage.setItem('auth_token', data.access_token);
                 localStorage.setItem('user_email', email);
-                navigate('/dashboard');
+                window.location.href = '/dashboard';
             } else {
                 setError(data.detail || 'Invalid credentials');
             }
