@@ -265,9 +265,8 @@ class DiagnoserAgent:
         if 'ollama' not in skip_providers:
             try:
                 from langchain_community.chat_models import ChatOllama
-                # Use host.docker.internal to reach host from Docker container
-                # Falls back to localhost if not in Docker
-                ollama_url = "http://host.docker.internal:11434"
+                # Use localhost since backend uses host networking
+                ollama_url = "http://localhost:11434"
                 test_llm = ChatOllama(
                     model="llama3.2",
                     temperature=0.1,
