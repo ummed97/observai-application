@@ -49,7 +49,7 @@ class DiagnoserAgent:
         # Initialize LLM
         try:
             self.llm = ChatOpenAI(
-                model="gpt-4-turbo-preview",
+                model="gpt-4o",
                 temperature=0.1
             )
         except Exception as e:
