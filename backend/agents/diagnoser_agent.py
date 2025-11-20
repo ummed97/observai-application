@@ -217,6 +217,47 @@ class DiagnoserAgent:
             "timestamp": datetime.utcnow().isoformat()
         }
     
+    async def _get_available_llm(self):
+        """
+        Get an available LLM with automatic fallback.
+        Tries each LLM in order and returns the first one that works.
+        """
+        # Try OpenAI first
+        if os.getenv("OPENAI_API_KEY"):
+            try:
+                test_llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
+                # Quick test to see if it works
+                return test_llm
+            except Exception as e:
+                logger.warning(f"OpenAI not available: {e}")
+        
+        # Try Google Gemini
+        if os.getenv("GOOGLE_API_KEY"):
+            try:
+                from langchain_google_genai import ChatGoogleGenerativeAI
+                test_llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.1)
+                return test_llm
+            except Exception as e:
+                logger.warning(f"Google Gemini not available: {e}")
+        
+        # Try Anthropic
+        if os.getenv("ANTHROPIC_API_KEY"):
+            try:
+                test_llm = ChatAnthropic(model="claude-3-5-sonnet-20241022", temperature=0.1)
+                return test_llm
+            except Exception as e:
+                logger.warning(f"Anthropic not available: {e}")
+        
+        # Try Ollama (local)
+        try:
+            from langchain_community.chat_models import ChatOllama
+            test_llm = ChatOllama(model="llama3.2", temperature=0.1)
+            return test_llm
+        except Exception as e:
+            logger.warning(f"Ollama not available: {e}")
+        
+        return None
+    
     async def process_nl_query(
         self,
         query: str,
@@ -231,25 +272,49 @@ class DiagnoserAgent:
             # Prepare context
             context_str = json.dumps(context or {}, indent=2, default=str)
             
-            # Create chain
-            chain = self.nl_query_prompt | self.llm | self.nl_parser
+            # Try with primary LLM first
+            llm_to_use = self.llm
+            attempt = 0
+            max_attempts = 4  # Try all available LLMs
             
-            # Run query
-            result = await asyncio.to_thread(
-                chain.invoke,
-                {
-                    "query": query,
-                    "context": context_str,
-                    "format_instructions": self.nl_parser.get_format_instructions()
-                }
-            )
+            while attempt < max_attempts:
+                try:
+                    # Create chain with current LLM
+                    chain = self.nl_query_prompt | llm_to_use | self.nl_parser
+                    
+                    # Run query
+                    result = await asyncio.to_thread(
+                        chain.invoke,
+                        {
+                            "query": query,
+                            "context": context_str,
+                            "format_instructions": self.nl_parser.get_format_instructions()
+                        }
+                    )
+                    
+                    return {
+                        "answer": result.answer,
+                        "sources": result.sources,
+                        "confidence": result.confidence,
+                        "visualizations": result.visualizations
+                    }
+                    
+                except Exception as e:
+                    error_str = str(e)
+                    # Check if it's a quota/rate limit error
+                    if "429" in error_str or "quota" in error_str.lower() or "rate" in error_str.lower():
+                        logger.warning(f"LLM quota/rate limit hit, trying fallback: {e}")
+                        # Try to get a different LLM
+                        llm_to_use = await self._get_available_llm()
+                        if llm_to_use is None:
+                            raise Exception("No LLM available")
+                        attempt += 1
+                    else:
+                        # Other error, re-raise
+                        raise
             
-            return {
-                "answer": result.answer,
-                "sources": result.sources,
-                "confidence": result.confidence,
-                "visualizations": result.visualizations
-            }
+            # If we exhausted all attempts
+            raise Exception("All LLMs failed or quota exceeded")
             
         except Exception as e:
             logger.error(f"NL query processing error: {e}")
