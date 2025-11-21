@@ -141,6 +141,21 @@ class DiagnoserAgent:
             {format_instructions}"""),
             ("human", "{query}\n\nContext: {context}")
         ])
+
+        # Create simple prompt for local LLMs that struggle with JSON
+        self.simple_nl_query_prompt = ChatPromptTemplate.from_messages([
+            ("system", """You are an AI assistant for an observability platform.
+            Answer questions about infrastructure, metrics, incidents, and predictions.
+            
+            Available data:
+            - Metrics: CPU, memory, disk, network usage
+            - Incidents: Past and current incidents with RCA
+            - Services: Topology and dependencies
+            - Predictions: Capacity and failure forecasts
+            
+            Provide clear, actionable answers. Do not use JSON."""),
+            ("human", "{query}\n\nContext: {context}")
+        ])
     
     async def initialize(self):
         """Initialize the diagnoser agent"""
@@ -318,43 +333,75 @@ class DiagnoserAgent:
             
             for attempt in range(max_attempts):
                 try:
-                    # Create chain with current LLM
-                    # We use the raw LLM output and parse it manually for better robustness with local models
-                    chain = self.nl_query_prompt | llm_to_use
-                    
-                    # Run query
-                    response = await asyncio.to_thread(
-                        chain.invoke,
-                        {
-                            "query": query,
-                            "context": context_str,
-                            "format_instructions": self.nl_parser.get_format_instructions()
-                        }
-                    )
-                    
-                    # Handle response content
-                    content = response.content if hasattr(response, 'content') else str(response)
-                    
-                    # Try to parse JSON
-                    parsed_data = self._extract_json_from_text(content)
-                    
-                    if not parsed_data:
-                        # If strict parsing failed, try to construct a valid object from what we have
-                        logger.warning(f"Failed to parse JSON from LLM response: {content[:100]}...")
-                        # Simple fallback if it looks like a conversational answer
-                        parsed_data = {
-                            "answer": content.replace("```json", "").replace("```", "").strip(),
+                    # Check if we are using a local model (Ollama)
+                    is_local_model = current_provider == 'ollama'
+                    # Also check class name just in case provider string is off
+                    if not is_local_model and llm_to_use.__class__.__name__ == 'ChatOllama':
+                        is_local_model = True
+                        
+                    logger.info(f"Processing query with provider: {current_provider}, is_local: {is_local_model}")
+
+                    if is_local_model:
+                        # Use simple prompt for Ollama to avoid JSON parsing issues
+                        chain = self.simple_nl_query_prompt | llm_to_use
+                        
+                        # Run query
+                        response = await asyncio.to_thread(
+                            chain.invoke,
+                            {
+                                "query": query,
+                                "context": context_str
+                            }
+                        )
+                        
+                        # Handle response content
+                        content = response.content if hasattr(response, 'content') else str(response)
+                        
+                        # Manually construct result
+                        return {
+                            "answer": content,
                             "sources": [],
-                            "confidence": 0.5,
+                            "confidence": 0.8,
                             "visualizations": None
                         }
+                    else:
+                        # Create chain with current LLM
+                        # We use the raw LLM output and parse it manually for better robustness with local models
+                        chain = self.nl_query_prompt | llm_to_use
+                        
+                        # Run query
+                        response = await asyncio.to_thread(
+                            chain.invoke,
+                            {
+                                "query": query,
+                                "context": context_str,
+                                "format_instructions": self.nl_parser.get_format_instructions()
+                            }
+                        )
+                        
+                        # Handle response content
+                        content = response.content if hasattr(response, 'content') else str(response)
+                        
+                        # Try to parse JSON
+                        parsed_data = self._extract_json_from_text(content)
+                        
+                        if not parsed_data:
+                            # If strict parsing failed, try to construct a valid object from what we have
+                            logger.warning(f"Failed to parse JSON from LLM response: {content[:100]}...")
+                            # Simple fallback if it looks like a conversational answer
+                            parsed_data = {
+                                "answer": content.replace("```json", "").replace("```", "").strip(),
+                                "sources": [],
+                                "confidence": 0.5,
+                                "visualizations": None
+                            }
 
-                    return {
-                        "answer": parsed_data.get("answer", "No answer provided"),
-                        "sources": parsed_data.get("sources", []),
-                        "confidence": parsed_data.get("confidence", 0.0),
-                        "visualizations": parsed_data.get("visualizations", None)
-                    }
+                        return {
+                            "answer": parsed_data.get("answer", "No answer provided"),
+                            "sources": parsed_data.get("sources", []),
+                            "confidence": parsed_data.get("confidence", 0.0),
+                            "visualizations": parsed_data.get("visualizations", None)
+                        }
                     
                 except Exception as e:
                     error_str = str(e)
