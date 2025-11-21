@@ -119,9 +119,10 @@ class CostAgent:
         }
 
         try:
-            # Analyze last 30 days of costs to find patterns
+            # Analyze last 730 days (2 years) to ensure we catch historical data
+            # This is important because the dashboard might be showing older data (e.g. 2024)
             end_date = datetime.utcnow()
-            start_date = end_date - timedelta(days=30)
+            start_date = end_date - timedelta(days=730)
             
             cost_data = await self.analyze_costs(start_date, end_date, "service")
             
