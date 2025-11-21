@@ -11,9 +11,23 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- (Additional indexes beyond those defined in SQLAlchemy models)
 
 -- Metrics table partitioning setup (for better time-series performance)
--- This would be handled by TimescaleDB in production
--- CREATE EXTENSION IF NOT EXISTS timescaledb;
--- SELECT create_hypertable('metrics', 'timestamp', if_not_exists => TRUE);
+CREATE EXTENSION IF NOT EXISTS timescaledb;
+
+CREATE TABLE IF NOT EXISTS metrics (
+    id VARCHAR PRIMARY KEY,
+    timestamp TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    source VARCHAR NOT NULL,
+    metric_name VARCHAR NOT NULL,
+    value DOUBLE PRECISION NOT NULL,
+    labels JSONB DEFAULT '{}',
+    tenant_id VARCHAR,
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_metric_time_name ON metrics (timestamp, metric_name);
+CREATE INDEX IF NOT EXISTS idx_metric_source_name ON metrics (source, metric_name);
+
+SELECT create_hypertable('metrics', 'timestamp', if_not_exists => TRUE);
 
 -- Create function for updating updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
