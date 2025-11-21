@@ -346,14 +346,14 @@ class DiagnoserAgent:
                             "answer": content.replace("```json", "").replace("```", "").strip(),
                             "sources": [],
                             "confidence": 0.5,
-                            "visualizations": []
+                            "visualizations": None
                         }
 
                     return {
                         "answer": parsed_data.get("answer", "No answer provided"),
                         "sources": parsed_data.get("sources", []),
                         "confidence": parsed_data.get("confidence", 0.0),
-                        "visualizations": parsed_data.get("visualizations", [])
+                        "visualizations": parsed_data.get("visualizations", None)
                     }
                     
                 except Exception as e:
