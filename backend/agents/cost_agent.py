@@ -109,24 +109,72 @@ class CostAgent:
             return {"error": str(e)}
     
     async def detect_waste(self) -> Dict[str, Any]:
-        """Detect cost waste"""
+        """Detect cost waste based on heuristics from actual spend"""
         self.optimizations_found += 1
         
-        return {
-            "total_waste": 3200.00,
-            "opportunities": [
-                {
-                    "type": "idle_resources",
-                    "description": "15 idle VMs",
-                    "savings": 1800
-                },
-                {
-                    "type": "unattached_disks",
-                    "description": "23 unattached volumes",
-                    "savings": 1400
-                }
-            ]
+        # Default fallback if analysis fails
+        waste_data = {
+            "total_waste": 0.0,
+            "opportunities": []
         }
+
+        try:
+            # Analyze last 30 days of costs to find patterns
+            end_date = datetime.utcnow()
+            start_date = end_date - timedelta(days=30)
+            
+            cost_data = await self.analyze_costs(start_date, end_date, "service")
+            
+            if "error" in cost_data:
+                logger.error(f"Could not fetch cost data for waste detection: {cost_data['error']}")
+                return waste_data
+
+            breakdown = cost_data.get("breakdown", [])
+            total_waste = 0.0
+            opportunities = []
+
+            # Heuristic rules for waste detection
+            rules = {
+                "Virtual Machines": {"factor": 0.15, "desc": "Right-size underutilized instances", "type": "right_sizing"},
+                "Storage": {"factor": 0.08, "desc": "Delete unattached managed disks", "type": "unattached_disks"},
+                "Load Balancer": {"factor": 0.10, "desc": "Remove idle load balancers", "type": "idle_resources"},
+                "Virtual Network": {"factor": 0.05, "desc": "Remove unused VNet peering", "type": "network_optimization"},
+                "Azure Database for PostgreSQL": {"factor": 0.20, "desc": "Purchase Reserved Instances", "type": "reservation"},
+                "SQL Database": {"factor": 0.20, "desc": "Purchase Reserved Instances", "type": "reservation"},
+                "Bandwidth": {"factor": 0.05, "desc": "Optimize data transfer", "type": "network_optimization"},
+            }
+
+            for item in breakdown:
+                service = item.get("service")
+                cost = item.get("cost", 0)
+                
+                # Match service to rule (partial match)
+                matched_rule = None
+                for key, rule in rules.items():
+                    if key.lower() in service.lower():
+                        matched_rule = rule
+                        break
+                
+                if matched_rule and cost > 10:  # Only consider significant costs
+                    savings = cost * matched_rule["factor"]
+                    total_waste += savings
+                    opportunities.append({
+                        "type": matched_rule["type"],
+                        "description": f"{matched_rule['desc']} ({service})",
+                        "savings": round(savings, 2)
+                    })
+            
+            # Sort opportunities by savings
+            opportunities.sort(key=lambda x: x["savings"], reverse=True)
+            
+            return {
+                "total_waste": round(total_waste, 2),
+                "opportunities": opportunities[:5]  # Return top 5 opportunities
+            }
+
+        except Exception as e:
+            logger.error(f"Error in detect_waste: {e}")
+            return waste_data
     
     async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
         return await self.detect_waste()
