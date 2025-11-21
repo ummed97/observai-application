@@ -119,6 +119,150 @@ class DiagnoserAgent:
             - Temporal correlation between events
             - Service dependencies
             - Historical patterns
+            - Infrastructure changes
+            
+            {format_instructions}"""),
+            ("human", "Analyze this anomaly:\n\n{anomaly_data}")
+        ])
+        
+        # Create NL query prompt with stricter instructions for local LLMs
+        self.nl_query_prompt = ChatPromptTemplate.from_messages([
+            ("system", """You are an AI assistant for an observability platform.
+            Answer questions about infrastructure, metrics, incidents, and predictions.
+            
+            Available data:
+            - Metrics: CPU, memory, disk, network usage
+            - Incidents: Past and current incidents with RCA
+            - Services: Topology and dependencies
+            - Predictions: Capacity and failure forecasts
+            
+            IMPORTANT: You must output ONLY valid JSON. No conversational text, no markdown blocks, no explanations.
+            
+            {format_instructions}"""),
+            ("human", "{query}\n\nContext: {context}")
+        ])
+    
+    async def initialize(self):
+        """Initialize the diagnoser agent"""
+        logger.info("Initializing Diagnoser Agent...")
+        self.status = "active"
+        logger.info("Diagnoser Agent initialized and active")
+    
+    async def shutdown(self):
+        """Shutdown the agent"""
+        self.status = "stopped"
+        logger.info("Diagnoser Agent stopped")
+    
+    async def analyze(self, anomaly: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Perform root cause analysis on an anomaly
+        Returns diagnosis with root cause and recommendations
+        """
+        try:
+            self.diagnoses_performed += 1
+            self.last_action = f"Analyzing anomaly: {anomaly.get('metric_name')}"
+            
+            # Prepare anomaly data for LLM
+            anomaly_str = json.dumps(anomaly, indent=2, default=str)
+            
+            # Create chain
+            chain = self.diagnosis_prompt | self.llm | self.diagnosis_parser
+            
+            # Run diagnosis
+            diagnosis = await asyncio.to_thread(
+                chain.invoke,
+                {
+                    "anomaly_data": anomaly_str,
+                    "format_instructions": self.diagnosis_parser.get_format_instructions()
+                }
+            )
+            
+            logger.info(f"Diagnosis completed: {diagnosis.root_cause}")
+            
+            return {
+                "root_cause": diagnosis.root_cause,
+                "confidence": diagnosis.confidence,
+                "affected_services": diagnosis.affected_services,
+                "evidence": diagnosis.evidence,
+                "recommendations": diagnosis.recommendations,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Diagnosis error: {e}")
+            # Fallback to rule-based analysis
+            return await self._rule_based_analysis(anomaly)
+    
+    async def _rule_based_analysis(self, anomaly: Dict[str, Any]) -> Dict[str, Any]:
+        """Fallback rule-based analysis when LLM fails"""
+        metric_name = anomaly.get("metric_name", "")
+        severity = anomaly.get("severity", "medium")
+        
+        # Simple rule-based mapping
+        root_causes = {
+            "cpu_usage": "High CPU utilization detected",
+            "memory_usage": "Memory exhaustion or leak detected",
+            "disk_usage": "Disk space running low",
+            "api_latency": "API performance degradation",
+            "error_rate": "Increased error rate in service"
+        }
+        
+        root_cause = root_causes.get(metric_name, f"Anomaly detected in {metric_name}")
+        
+        return {
+            "root_cause": root_cause,
+            "confidence": 0.6,
+            "affected_services": [],
+            "evidence": [f"Metric {metric_name} exceeded threshold"],
+            "recommendations": ["Investigate service logs", "Check recent deployments"],
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    
+    async def _get_available_llm(self, skip_providers=None):
+        """
+        Get an available LLM with automatic fallback.
+        Tries each LLM in order and returns the first one that works.
+        
+        Args:
+            skip_providers: List of provider names to skip (e.g., ['openai', 'gemini'])
+        """
+        if skip_providers is None:
+            skip_providers = []
+        
+        # Try OpenAI first (unless we're skipping it)
+        if 'openai' not in skip_providers and os.getenv("OPENAI_API_KEY"):
+            try:
+                test_llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
+                logger.info("Fallback: Using OpenAI")
+                return test_llm, 'openai'
+            except Exception as e:
+                logger.warning(f"OpenAI not available: {e}")
+        
+        # Try Google Gemini (unless we're skipping it)
+        if 'gemini' not in skip_providers and os.getenv("GOOGLE_API_KEY"):
+            try:
+                from langchain_google_genai import ChatGoogleGenerativeAI
+                test_llm = ChatGoogleGenerativeAI(
+                    model="models/gemini-1.0-pro",
+                    temperature=0.1,
+                    convert_system_message_to_human=True  # Required for Gemini
+                )
+                logger.info("Fallback: Using Google Gemini")
+                return test_llm, 'gemini'
+            except Exception as e:
+                logger.warning(f"Google Gemini not available: {e}")
+        
+        # Try Anthropic (unless we're skipping it)
+        if 'anthropic' not in skip_providers and os.getenv("ANTHROPIC_API_KEY"):
+            try:
+                test_llm = ChatAnthropic(model="claude-3-5-sonnet-20241022", temperature=0.1)
+                logger.info("Fallback: Using Anthropic Claude")
+                return test_llm, 'anthropic'
+            except Exception as e:
+                logger.warning(f"Anthropic not available: {e}")
+        
+        # Try Ollama (local) - unless we're skipping it
+        if 'ollama' not in skip_providers:
             try:
                 from langchain_community.chat_models import ChatOllama
                 # Use ollama.host which maps to Docker host (172.17.0.1)
@@ -134,7 +278,24 @@ class DiagnoserAgent:
                 logger.warning(f"Ollama not available: {e}")
         
         return None, None
-    
+
+    def _extract_json_from_text(self, text: str) -> Dict[str, Any]:
+        """Helper to extract JSON from text that might contain markdown or conversation"""
+        try:
+            # Try direct parse
+            return json.loads(text)
+        except json.JSONDecodeError:
+            # Try to find JSON block
+            import re
+            # Look for ```json ... ``` or just { ... }
+            json_match = re.search(r'\{.*\}', text, re.DOTALL)
+            if json_match:
+                try:
+                    return json.loads(json_match.group(0))
+                except:
+                    pass
+            return None
+
     async def process_nl_query(
         self,
         query: str,
@@ -158,10 +319,11 @@ class DiagnoserAgent:
             for attempt in range(max_attempts):
                 try:
                     # Create chain with current LLM
-                    chain = self.nl_query_prompt | llm_to_use | self.nl_parser
+                    # We use the raw LLM output and parse it manually for better robustness with local models
+                    chain = self.nl_query_prompt | llm_to_use
                     
                     # Run query
-                    result = await asyncio.to_thread(
+                    response = await asyncio.to_thread(
                         chain.invoke,
                         {
                             "query": query,
@@ -170,11 +332,28 @@ class DiagnoserAgent:
                         }
                     )
                     
+                    # Handle response content
+                    content = response.content if hasattr(response, 'content') else str(response)
+                    
+                    # Try to parse JSON
+                    parsed_data = self._extract_json_from_text(content)
+                    
+                    if not parsed_data:
+                        # If strict parsing failed, try to construct a valid object from what we have
+                        logger.warning(f"Failed to parse JSON from LLM response: {content[:100]}...")
+                        # Simple fallback if it looks like a conversational answer
+                        parsed_data = {
+                            "answer": content.replace("```json", "").replace("```", "").strip(),
+                            "sources": [],
+                            "confidence": 0.5,
+                            "visualizations": []
+                        }
+
                     return {
-                        "answer": result.answer,
-                        "sources": result.sources,
-                        "confidence": result.confidence,
-                        "visualizations": result.visualizations
+                        "answer": parsed_data.get("answer", "No answer provided"),
+                        "sources": parsed_data.get("sources", []),
+                        "confidence": parsed_data.get("confidence", 0.0),
+                        "visualizations": parsed_data.get("visualizations", [])
                     }
                     
                 except Exception as e:
