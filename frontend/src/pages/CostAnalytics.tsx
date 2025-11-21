@@ -132,19 +132,29 @@ const CostAnalytics: React.FC = () => {
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
                     <Pie
-                      data={costSummary.breakdown}
+                      data={(() => {
+                        // Group small items into "Other"
+                        const sorted = [...costSummary.breakdown].sort((a, b) => b.cost - a.cost);
+                        if (sorted.length <= 6) return sorted;
+
+                        const top5 = sorted.slice(0, 5);
+                        const others = sorted.slice(5);
+                        const otherCost = others.reduce((sum, item) => sum + item.cost, 0);
+
+                        return [...top5, { service: 'Other', cost: otherCost }];
+                      })()}
                       dataKey="cost"
                       nameKey="service"
                       cx="50%"
                       cy="50%"
                       outerRadius={100}
-                      label
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                     >
                       {costSummary.breakdown.map((entry: any, index: number) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
@@ -153,16 +163,21 @@ const CostAnalytics: React.FC = () => {
 
             {/* Service Costs */}
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Cost by Service</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Top Services by Cost</h2>
               {costSummary?.breakdown && (
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={costSummary.breakdown}>
+                  <BarChart
+                    data={[...costSummary.breakdown]
+                      .sort((a: any, b: any) => b.cost - a.cost)
+                      .slice(0, 10) // Show top 10 only
+                    }
+                  >
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="service" />
+                    <XAxis dataKey="service" tick={{ fontSize: 12 }} interval={0} angle={-45} textAnchor="end" height={60} />
                     <YAxis />
-                    <Tooltip />
+                    <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} />
                     <Legend />
-                    <Bar dataKey="cost" fill="#3b82f6" />
+                    <Bar dataKey="cost" name="Cost" fill="#3b82f6" />
                   </BarChart>
                 </ResponsiveContainer>
               )}
