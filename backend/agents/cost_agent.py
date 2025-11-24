@@ -8,6 +8,9 @@ import os
 from azure.identity import DefaultAzureCredential
 from azure.mgmt.costmanagement import CostManagementClient
 from azure.core.exceptions import AzureError
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -25,12 +28,14 @@ class CostAgent:
     async def initialize(self):
         try:
             if self.subscription_id:
+                logger.info(f"Initializing Azure Cost Agent with Subscription ID: {self.subscription_id}")
                 self.credential = DefaultAzureCredential()
                 self.cost_client = CostManagementClient(self.credential)
                 self.enabled = True
                 logger.info("Cost Agent initialized with Azure connection")
             else:
-                logger.warning("AZURE_SUBSCRIPTION_ID not set. Cost Agent running in mock mode.")
+                logger.warning("AZURE_SUBSCRIPTION_ID not set in environment variables. Cost Agent running in mock mode.")
+                logger.debug(f"Current environment variables keys: {list(os.environ.keys())}")
         except Exception as e:
             logger.error(f"Failed to initialize Azure Cost Client: {e}")
             

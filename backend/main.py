@@ -14,6 +14,9 @@ import os
 import json
 from dotenv import load_dotenv
 
+# Load environment variables
+load_dotenv()
+
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import select, and_, or_, func
