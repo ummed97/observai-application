@@ -5,7 +5,7 @@ import { TopologyView } from './pages/TopologyView'
 import { NLQuery } from './pages/NLQuery'
 import Incidents from './pages/Incidents'
 import CostAnalytics from './pages/CostAnalytics'
-import Login3D from './pages/Login3D'
+import Login from './pages/Login'
 import Signup3D from './pages/Signup3D'
 
 function App() {
@@ -19,7 +19,7 @@ function App() {
         <Route
           path="/login"
           element={
-            isAuthenticated ? <Navigate to="/" /> : <Login3D />
+            isAuthenticated ? <Navigate to="/" /> : <Login />
           }
         />
         <Route
