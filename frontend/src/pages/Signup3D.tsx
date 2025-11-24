@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
-import ParticleBackground from '../components/3d/ParticleBackground';
-import './Login3D.css'; // Reusing the same styles
+import { Activity, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import NetworkBackground from '../components/common/NetworkBackground';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export const Signup3D: React.FC = () => {
+    const navigate = useNavigate();
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -16,14 +16,12 @@ export const Signup3D: React.FC = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
-    const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setLoading(true);
 
-        // Validation
         if (!fullName.trim()) {
             setError('Full name is required');
             setLoading(false);
@@ -71,139 +69,150 @@ export const Signup3D: React.FC = () => {
     };
 
     return (
-        <div className="login3d-container">
-            <ParticleBackground />
+        <div className="flex h-screen w-full overflow-hidden bg-white">
+            {/* Left Panel - Branding & Animation */}
+            <div className="hidden lg:flex w-1/2 relative flex-col justify-between p-12 bg-[#0F111A] text-white overflow-hidden">
+                <NetworkBackground />
 
-            <div className="login3d-content">
-                <div className="login3d-card">
-                    {/* Logo */}
-                    <div className="login3d-logo-container">
-                        <img
-                            src="/logo.png"
-                            alt="ObservAI Logo"
-                            className="login3d-logo"
-                        />
+                <div className="relative z-10">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-blue-600 rounded-lg">
+                            <Activity className="w-8 h-8 text-white" />
+                        </div>
+                        <span className="text-2xl font-bold tracking-tight">ObservAI</span>
                     </div>
 
-                    {/* Title */}
-                    <h1 className="login3d-title">Create Account</h1>
-                    <p className="login3d-subtitle">Join the AI Observability Platform today!</p>
+                    <h1 className="text-5xl font-bold leading-tight mb-6">
+                        Join the <span className="text-blue-500">Future of Observability</span>
+                    </h1>
 
-                    {/* Success Message */}
-                    {success && (
-                        <div className="login3d-success">
-                            Account created successfully! Redirecting to login...
+                    <p className="text-gray-400 text-lg max-w-md">
+                        Create an account to start monitoring your infrastructure with autonomous AI agents.
+                    </p>
+                </div>
+
+                <div className="relative z-10 flex items-center gap-4 text-sm text-gray-500">
+                    <div className="flex -space-x-2">
+                        {[1, 2, 3].map((i) => (
+                            <div key={i} className="w-8 h-8 rounded-full bg-gray-700 border-2 border-[#0F111A]" />
+                        ))}
+                    </div>
+                    <p>Join 500+ DevOps engineers</p>
+                </div>
+            </div>
+
+            {/* Right Panel - Signup Form */}
+            <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-8 bg-gray-50 overflow-y-auto">
+                <div className="w-full max-w-md space-y-8 bg-white p-10 rounded-2xl shadow-xl my-8">
+                    <div className="text-center">
+                        <h2 className="text-3xl font-bold text-gray-900">Create Account</h2>
+                        <p className="mt-2 text-gray-600">Get started with ObservAI today</p>
+                    </div>
+
+                    {success ? (
+                        <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-center">
+                            <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-2" />
+                            <h3 className="text-lg font-medium text-green-800">Account Created!</h3>
+                            <p className="text-green-600">Redirecting to login...</p>
                         </div>
-                    )}
+                    ) : (
+                        <form onSubmit={handleSubmit} className="space-y-5">
+                            {error && (
+                                <div className="p-4 text-sm text-red-500 bg-red-50 rounded-lg border border-red-100">
+                                    {error}
+                                </div>
+                            )}
 
-                    {/* Error Message */}
-                    {error && (
-                        <div className="login3d-error">
-                            {error}
-                        </div>
-                    )}
-
-                    {/* Signup Form */}
-                    <form onSubmit={handleSubmit} className="login3d-form">
-                        <div className="login3d-input-group">
-                            <label htmlFor="fullName" className="login3d-label">Full Name</label>
-                            <input
-                                id="fullName"
-                                type="text"
-                                value={fullName}
-                                onChange={(e) => setFullName(e.target.value)}
-                                className="login3d-input"
-                                placeholder="Enter your full name"
-                                required
-                                autoComplete="name"
-                            />
-                        </div>
-
-                        <div className="login3d-input-group">
-                            <label htmlFor="email" className="login3d-label">Email</label>
-                            <input
-                                id="email"
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="login3d-input"
-                                placeholder="Enter your email"
-                                required
-                                autoComplete="email"
-                            />
-                        </div>
-
-                        <div className="login3d-input-group">
-                            <label htmlFor="password" className="login3d-label">Password</label>
-                            <div className="login3d-password-wrapper">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                                 <input
-                                    id="password"
-                                    type={showPassword ? 'text' : 'password'}
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="login3d-input"
-                                    placeholder="Create a password (min. 6 characters)"
+                                    type="text"
                                     required
-                                    autoComplete="new-password"
-                                    minLength={6}
+                                    value={fullName}
+                                    onChange={(e) => setFullName(e.target.value)}
+                                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                                    placeholder="Enter your full name"
                                 />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="login3d-password-toggle"
-                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                                >
-                                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                                </button>
                             </div>
-                        </div>
 
-                        <div className="login3d-input-group">
-                            <label htmlFor="confirmPassword" className="login3d-label">Confirm Password</label>
-                            <div className="login3d-password-wrapper">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                                 <input
-                                    id="confirmPassword"
-                                    type={showConfirmPassword ? 'text' : 'password'}
-                                    value={confirmPassword}
-                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                    className="login3d-input"
-                                    placeholder="Confirm your password"
+                                    type="email"
                                     required
-                                    autoComplete="new-password"
-                                    minLength={6}
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                                    placeholder="Enter your email"
                                 />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                    className="login3d-password-toggle"
-                                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
-                                >
-                                    {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                                </button>
                             </div>
-                        </div>
 
-                        <button
-                            type="submit"
-                            disabled={loading || success}
-                            className="login3d-button"
-                        >
-                            {loading ? 'Creating Account...' : success ? 'Success!' : 'Sign Up'}
-                        </button>
-                    </form>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                <div className="relative">
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        required
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none [&::-ms-reveal]:hidden"
+                                        placeholder="Create a password (min. 6 chars)"
+                                        minLength={6}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                    >
+                                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                    </button>
+                                </div>
+                            </div>
 
-                    {/* Login Link */}
-                    <div className="login3d-footer">
-                        <p>
-                            Already have an account?{' '}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                                <div className="relative">
+                                    <input
+                                        type={showConfirmPassword ? 'text' : 'password'}
+                                        required
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none [&::-ms-reveal]:hidden"
+                                        placeholder="Confirm your password"
+                                        minLength={6}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                    >
+                                        {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                    </button>
+                                </div>
+                            </div>
+
                             <button
-                                onClick={() => navigate('/login')}
-                                className="login3d-link"
+                                type="submit"
+                                disabled={loading}
+                                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
                             >
-                                Login
+                                {loading ? 'Creating Account...' : 'Sign Up'}
                             </button>
-                        </p>
-                    </div>
+
+                            <div className="text-center mt-4">
+                                <p className="text-sm text-gray-600">
+                                    Already have an account?{' '}
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/login')}
+                                        className="font-medium text-blue-600 hover:text-blue-500 hover:underline transition-all"
+                                    >
+                                        Log in
+                                    </button>
+                                </p>
+                            </div>
+                        </form>
+                    )}
                 </div>
             </div>
         </div>
