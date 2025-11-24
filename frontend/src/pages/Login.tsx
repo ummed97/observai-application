@@ -118,7 +118,7 @@ const Login: React.FC = () => {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none [&::-ms-reveal]:hidden"
                     placeholder="Enter your password"
                   />
                   <button
@@ -152,6 +152,19 @@ const Login: React.FC = () => {
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
+
+            <div className="text-center mt-4">
+              <p className="text-sm text-gray-600">
+                Don't have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => navigate('/signup')}
+                  className="font-medium text-blue-600 hover:text-blue-500 hover:underline transition-all"
+                >
+                  Sign up
+                </button>
+              </p>
+            </div>
 
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
