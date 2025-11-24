@@ -196,7 +196,7 @@ export const Signup3D: React.FC = () => {
                                 disabled={loading}
                                 className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
                             >
-                                {loading ? 'Creating Account...' : 'Sign Up'}
+                                {loading ? 'Creating Account...' : 'Sign up'}
                             </button>
 
                             <div className="text-center mt-4">
@@ -207,7 +207,7 @@ export const Signup3D: React.FC = () => {
                                         onClick={() => navigate('/login')}
                                         className="font-medium text-blue-600 hover:text-blue-500 hover:underline transition-all"
                                     >
-                                        Log in
+                                        Sign in
                                     </button>
                                 </p>
                             </div>
