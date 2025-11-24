@@ -36,7 +36,8 @@ const Login: React.FC = () => {
       const data = await response.json();
       localStorage.setItem('auth_token', data.access_token);
       localStorage.setItem('user_email', email);
-      navigate('/dashboard');
+      // Force reload to update App state
+      window.location.href = '/dashboard';
     } catch (err) {
       setError('Invalid email or password');
     } finally {
