@@ -86,8 +86,16 @@ class CostAgent:
                 return self.cost_client.query.usage(scope, parameters=query_params)
 
             # 1. Get Current Period Data
-            result = query_period(start_date, end_date)
-            rows = result.rows
+            logger.info(f"Querying Azure Cost from {start_date} to {end_date}")
+            try:
+                result = query_period(start_date, end_date)
+                rows = result.rows
+                logger.info(f"Azure Cost Query returned {len(rows)} rows")
+            except Exception as e:
+                logger.error(f"Azure Cost Query FAILED: {e}")
+                logger.exception("Full stack trace:")
+                raise e
+
             total_cost = 0.0
             breakdown = []
             
@@ -97,6 +105,8 @@ class CostAgent:
                 total_cost += cost
                 breakdown.append({"service": service_name, "cost": cost})
             
+            logger.info(f"Total Cost calculated: {total_cost}")
+            
             breakdown.sort(key=lambda x: x["cost"], reverse=True)
             
             # 2. Get Previous Period Data for Trend
@@ -105,8 +115,10 @@ class CostAgent:
             prev_end = start_date
             
             try:
+                logger.info(f"Querying Previous Period from {prev_start} to {prev_end}")
                 prev_result = query_period(prev_start, prev_end)
                 prev_total = sum(float(r[0]) for r in prev_result.rows)
+                logger.info(f"Previous Total Cost: {prev_total}")
             except Exception as e:
                 logger.warning(f"Failed to fetch previous period data: {e}")
                 prev_total = 0.0
@@ -135,6 +147,7 @@ class CostAgent:
             
         except Exception as e:
             logger.error(f"Error querying Azure costs: {e}")
+            logger.exception("Full stack trace for analyze_costs:")
             return {"error": str(e)}
     
     async def detect_waste(self) -> Dict[str, Any]:
