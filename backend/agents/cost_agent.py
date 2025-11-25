@@ -47,7 +47,6 @@ class CostAgent:
     
     async def analyze_costs(self, start_date: datetime, end_date: datetime, group_by: str) -> Dict[str, Any]:
         """Analyze cost data"""
-        """Analyze cost data"""
         if not self.enabled:
             # Fallback to mock data if Azure is not configured
             return {
@@ -62,50 +61,75 @@ class CostAgent:
             }
 
         try:
-            # Query Azure Cost Management
+            # Query Azure Cost Management for current period
             scope = f"/subscriptions/{self.subscription_id}"
             
-            # Define query for total cost by service
-            query_params = {
-                "type": "Usage",
-                "timeframe": "Custom",
-                "timePeriod": {
-                    "from": start_date.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                    "to": end_date.strftime("%Y-%m-%dT%H:%M:%S+00:00")
-                },
-                "dataset": {
-                    "granularity": "None",
-                    "aggregation": {
-                        "totalCost": {"name": "Cost", "function": "Sum"}
+            # Helper to query cost
+            async def query_period(s_date, e_date):
+                query_params = {
+                    "type": "Usage",
+                    "timeframe": "Custom",
+                    "timePeriod": {
+                        "from": s_date.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                        "to": e_date.strftime("%Y-%m-%dT%H:%M:%S+00:00")
                     },
-                    "grouping": [
-                        {"type": "Dimension", "name": "ServiceName"}
-                    ]
+                    "dataset": {
+                        "granularity": "None",
+                        "aggregation": {
+                            "totalCost": {"name": "Cost", "function": "Sum"}
+                        },
+                        "grouping": [
+                            {"type": "Dimension", "name": "ServiceName"}
+                        ]
+                    }
                 }
-            }
-            
-            result = self.cost_client.query.usage(scope, parameters=query_params)
-            
-            # Process results
+                return self.cost_client.query.usage(scope, parameters=query_params)
+
+            # 1. Get Current Period Data
+            result = query_period(start_date, end_date)
             rows = result.rows
             total_cost = 0.0
             breakdown = []
             
             for row in rows:
-                # Row format: [Cost, ServiceName, Currency]
                 cost = float(row[0])
                 service_name = row[1]
                 total_cost += cost
                 breakdown.append({"service": service_name, "cost": cost})
             
-            # Sort breakdown by cost
             breakdown.sort(key=lambda x: x["cost"], reverse=True)
             
+            # 2. Get Previous Period Data for Trend
+            duration = end_date - start_date
+            prev_start = start_date - duration
+            prev_end = start_date
+            
+            try:
+                prev_result = query_period(prev_start, prev_end)
+                prev_total = sum(float(r[0]) for r in prev_result.rows)
+            except Exception as e:
+                logger.warning(f"Failed to fetch previous period data: {e}")
+                prev_total = 0.0
+
+            # 3. Calculate Trend
+            change_percent = 0.0
+            trend = "stable"
+            
+            if prev_total > 0:
+                change_percent = ((total_cost - prev_total) / prev_total) * 100
+                if change_percent > 1:
+                    trend = "increasing"
+                elif change_percent < -1:
+                    trend = "decreasing"
+            elif total_cost > 0:
+                change_percent = 100.0
+                trend = "increasing"
+
             return {
                 "total_cost": total_cost,
                 "breakdown": breakdown,
-                "trend": "stable",  # Simplified trend logic
-                "change_percent": 0.0,
+                "trend": trend,
+                "change_percent": round(change_percent, 1),
                 "currency": rows[0][2] if rows else "USD"
             }
             
@@ -117,17 +141,16 @@ class CostAgent:
         """Detect cost waste based on heuristics from actual spend"""
         self.optimizations_found += 1
         
-        # Default fallback if analysis fails
+        # Default fallback
         waste_data = {
             "total_waste": 0.0,
             "opportunities": []
         }
 
         try:
-            # Analyze last 730 days (2 years) to ensure we catch historical data
-            # This is important because the dashboard might be showing older data (e.g. 2024)
+            # Analyze last 30 days for waste detection to be relevant
             end_date = datetime.utcnow()
-            start_date = end_date - timedelta(days=730)
+            start_date = end_date - timedelta(days=30)
             
             cost_data = await self.analyze_costs(start_date, end_date, "service")
             
@@ -146,9 +169,13 @@ class CostAgent:
                 "Load Balancer": {"factor": 0.10, "desc": "Remove idle load balancers", "type": "idle_resources"},
                 "Virtual Network": {"factor": 0.05, "desc": "Remove unused VNet peering", "type": "network_optimization"},
                 "Azure Database for PostgreSQL": {"factor": 0.20, "desc": "Purchase Reserved Instances", "type": "reservation"},
+                "Azure Database for MySQL": {"factor": 0.20, "desc": "Purchase Reserved Instances", "type": "reservation"},
                 "SQL Database": {"factor": 0.20, "desc": "Purchase Reserved Instances", "type": "reservation"},
                 "Bandwidth": {"factor": 0.05, "desc": "Optimize data transfer", "type": "network_optimization"},
+                "App Service": {"factor": 0.10, "desc": "Scale down unused slots", "type": "right_sizing"},
             }
+
+            logger.info(f"Analyzing {len(breakdown)} services for waste...")
 
             for item in breakdown:
                 service = item.get("service")
@@ -161,7 +188,7 @@ class CostAgent:
                         matched_rule = rule
                         break
                 
-                if matched_rule and cost > 10:  # Only consider significant costs
+                if matched_rule and cost > 1:  # Lower threshold to catch more items
                     savings = cost * matched_rule["factor"]
                     total_waste += savings
                     opportunities.append({
@@ -169,6 +196,7 @@ class CostAgent:
                         "description": f"{matched_rule['desc']} ({service})",
                         "savings": round(savings, 2)
                     })
+                    logger.info(f"Found opportunity: {service} -> ${savings}")
             
             # Sort opportunities by savings
             opportunities.sort(key=lambda x: x["savings"], reverse=True)
