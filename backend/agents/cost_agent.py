@@ -88,7 +88,7 @@ class CostAgent:
             # 1. Get Current Period Data
             logger.info(f"Querying Azure Cost from {start_date} to {end_date}")
             try:
-                result = query_period(start_date, end_date)
+                result = await query_period(start_date, end_date)
                 rows = result.rows
                 logger.info(f"Azure Cost Query returned {len(rows)} rows")
             except Exception as e:
@@ -116,7 +116,7 @@ class CostAgent:
             
             try:
                 logger.info(f"Querying Previous Period from {prev_start} to {prev_end}")
-                prev_result = query_period(prev_start, prev_end)
+                prev_result = await query_period(prev_start, prev_end)
                 prev_total = sum(float(r[0]) for r in prev_result.rows)
                 logger.info(f"Previous Total Cost: {prev_total}")
             except Exception as e:
