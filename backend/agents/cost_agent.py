@@ -27,6 +27,19 @@ class CostAgent:
         
     async def initialize(self):
         try:
+            # Explicitly look for .env file
+            env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+            if os.path.exists(env_path):
+                load_dotenv(env_path)
+                logger.info(f"Loaded .env from {env_path}")
+            else:
+                # Try loading from current directory or parent
+                load_dotenv()
+                logger.info("Loaded .env from default location")
+
+            # Re-fetch subscription ID after loading env
+            self.subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
+            
             if self.subscription_id:
                 logger.info(f"Initializing Azure Cost Agent with Subscription ID: {self.subscription_id}")
                 self.credential = DefaultAzureCredential()
@@ -40,7 +53,7 @@ class CostAgent:
             logger.error(f"Failed to initialize Azure Cost Client: {e}")
             
         self.status = "active"
-        logger.info("Cost Agent initialized")
+        logger.info(f"Cost Agent initialized (Mode: {'Real' if self.enabled else 'Mock'})")
     
     async def shutdown(self):
         self.status = "stopped"
@@ -50,6 +63,7 @@ class CostAgent:
         if not self.enabled:
             # Fallback to mock data if Azure is not configured
             return {
+                "mode": "mock",
                 "total_cost": 12500.00,
                 "breakdown": [
                     {"service": "compute", "cost": 7000},
@@ -142,7 +156,8 @@ class CostAgent:
                 "breakdown": breakdown,
                 "trend": trend,
                 "change_percent": round(change_percent, 1),
-                "currency": rows[0][2] if rows else "USD"
+                "currency": rows[0][2] if rows else "USD",
+                "mode": "real"
             }
             
         except Exception as e:
@@ -156,6 +171,7 @@ class CostAgent:
         
         # Default fallback
         waste_data = {
+            "mode": "mock" if not self.enabled else "real",
             "total_waste": 0.0,
             "opportunities": []
         }
@@ -215,6 +231,7 @@ class CostAgent:
             opportunities.sort(key=lambda x: x["savings"], reverse=True)
             
             return {
+                "mode": "real",
                 "total_waste": round(total_waste, 2),
                 "opportunities": opportunities[:5]  # Return top 5 opportunities
             }
