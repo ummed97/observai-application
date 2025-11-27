@@ -201,7 +201,7 @@ const CostAnalytics: React.FC = () => {
                         </div>
                         <div className="text-right">
                           <p className="text-2xl font-bold text-green-600">
-                            ${opportunity.savings.toLocaleString()}
+                            ₹{opportunity.savings.toLocaleString()}
                           </p>
                           <p className="text-sm text-gray-600">Potential Savings</p>
                         </div>
@@ -214,7 +214,7 @@ const CostAnalytics: React.FC = () => {
                 </div>
               ) : (
                 <div className="text-center py-12 text-gray-500">
-                  <DollarSign className="w-16 h-16 mx-auto mb-4 text-green-500" />
+                  <IndianRupee className="w-16 h-16 mx-auto mb-4 text-green-500" />
                   <p>No optimization opportunities found. Your infrastructure is well-optimized!</p>
                 </div>
               )}
