@@ -99,12 +99,58 @@ class CostAgent:
                 }
                 return self.cost_client.query.usage(scope, parameters=query_params)
 
-            # 1. Get Current Period Data
+            # 1. Get Current Period Data with Daily Granularity for Trend Chart
             logger.info(f"Querying Azure Cost from {start_date} to {end_date}")
+            
+            # Helper for daily query
+            async def query_daily(s_date, e_date):
+                query_params = {
+                    "type": "Usage",
+                    "timeframe": "Custom",
+                    "timePeriod": {
+                        "from": s_date.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                        "to": e_date.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+                    },
+                    "dataset": {
+                        "granularity": "Daily",
+                        "aggregation": {
+                            "totalCost": {"name": "Cost", "function": "Sum"}
+                        }
+                    }
+                }
+                return self.cost_client.query.usage(scope, parameters=query_params)
+
+            # Helper for service breakdown (Total over period)
+            async def query_breakdown(s_date, e_date):
+                query_params = {
+                    "type": "Usage",
+                    "timeframe": "Custom",
+                    "timePeriod": {
+                        "from": s_date.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                        "to": e_date.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+                    },
+                    "dataset": {
+                        "granularity": "None",
+                        "aggregation": {
+                            "totalCost": {"name": "Cost", "function": "Sum"}
+                        },
+                        "grouping": [
+                            {"type": "Dimension", "name": "ServiceName"}
+                        ]
+                    }
+                }
+                return self.cost_client.query.usage(scope, parameters=query_params)
+
             try:
-                result = await query_period(start_date, end_date)
-                rows = result.rows
-                logger.info(f"Azure Cost Query returned {len(rows)} rows")
+                # Fetch Breakdown
+                result_breakdown = await query_breakdown(start_date, end_date)
+                rows_breakdown = result_breakdown.rows
+                
+                # Fetch Daily History
+                result_daily = await query_daily(start_date, end_date)
+                rows_daily = result_daily.rows
+                
+                logger.info(f"Azure Cost Query returned {len(rows_breakdown)} breakdown rows and {len(rows_daily)} daily rows")
             except Exception as e:
                 logger.error(f"Azure Cost Query FAILED: {e}")
                 logger.exception("Full stack trace:")
@@ -112,13 +158,35 @@ class CostAgent:
 
             total_cost = 0.0
             breakdown = []
+            history = []
             
-            for row in rows:
+            # Process Breakdown
+            for row in rows_breakdown:
                 cost = float(row[0])
                 service_name = row[1]
                 total_cost += cost
                 breakdown.append({"service": service_name, "cost": cost})
             
+            # Process History (Daily)
+            for row in rows_daily:
+                cost = float(row[0])
+                date_str = row[1] # UsageDate
+                # Format date to YYYY-MM-DD
+                try:
+                    # Azure returns date as integer YYYYMMDD sometimes or string
+                    if isinstance(date_str, int):
+                        date_obj = datetime.strptime(str(date_str), "%Y%m%d")
+                    else:
+                        date_obj = datetime.fromisoformat(str(date_str).replace('Z', '+00:00'))
+                    
+                    formatted_date = date_obj.strftime("%Y-%m-%d")
+                    history.append({"date": formatted_date, "cost": cost})
+                except Exception as e:
+                    logger.warning(f"Error parsing date {date_str}: {e}")
+
+            # Sort history by date
+            history.sort(key=lambda x: x["date"])
+
             logger.info(f"Total Cost calculated: {total_cost}")
             
             breakdown.sort(key=lambda x: x["cost"], reverse=True)
@@ -130,7 +198,8 @@ class CostAgent:
             
             try:
                 logger.info(f"Querying Previous Period from {prev_start} to {prev_end}")
-                prev_result = await query_period(prev_start, prev_end)
+                # We only need total for previous period
+                prev_result = await query_breakdown(prev_start, prev_end)
                 prev_total = sum(float(r[0]) for r in prev_result.rows)
                 logger.info(f"Previous Total Cost: {prev_total}")
             except Exception as e:
@@ -154,9 +223,10 @@ class CostAgent:
             return {
                 "total_cost": total_cost,
                 "breakdown": breakdown,
+                "history": history,
                 "trend": trend,
                 "change_percent": round(change_percent, 1),
-                "currency": rows[0][2] if rows else "USD",
+                "currency": rows_breakdown[0][2] if rows_breakdown else "USD",
                 "mode": "real"
             }
             
