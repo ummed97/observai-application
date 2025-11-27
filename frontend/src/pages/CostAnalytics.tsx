@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
+import { IndianRupee, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import Header from '../components/common/Header';
 import Sidebar from '../components/common/Sidebar';
@@ -81,10 +81,10 @@ const CostAnalytics: React.FC = () => {
                 <div>
                   <p className="text-sm text-gray-600">Total Spend</p>
                   <p className="text-3xl font-bold text-gray-900 mt-2">
-                    ${totalCost.toLocaleString()}
+                    ₹{totalCost.toLocaleString()}
                   </p>
                 </div>
-                <DollarSign className="w-12 h-12 text-blue-500" />
+                <IndianRupee className="w-12 h-12 text-blue-500" />
               </div>
             </div>
 
@@ -93,7 +93,7 @@ const CostAnalytics: React.FC = () => {
                 <div>
                   <p className="text-sm text-gray-600">Waste Detected</p>
                   <p className="text-3xl font-bold text-red-600 mt-2">
-                    ${totalWaste.toLocaleString()}
+                    ₹{totalWaste.toLocaleString()}
                   </p>
                 </div>
                 <AlertCircle className="w-12 h-12 text-red-500" />

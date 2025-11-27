@@ -95,9 +95,14 @@ class DataCollector:
                 VALUES ($1, $2, $3, $4, $5)
             """
             
+            # Convert timestamp to timezone-naive if it has timezone info
+            timestamp = metric.get("timestamp")
+            if timestamp and hasattr(timestamp, 'tzinfo') and timestamp.tzinfo is not None:
+                timestamp = timestamp.replace(tzinfo=None)
+            
             await self.db_pool.execute(
                 query,
-                metric.get("timestamp"),
+                timestamp,
                 metric.get("source"),
                 metric.get("metric_name"),
                 metric.get("value"),
