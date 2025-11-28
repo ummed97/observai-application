@@ -2,17 +2,45 @@
 Cost Agent - FinOps Optimization
 """
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
 import os
+import hashlib
+import json
 from azure.identity import DefaultAzureCredential
 from azure.mgmt.costmanagement import CostManagementClient
-from azure.core.exceptions import AzureError
+from azure.core.exceptions import AzureError, HttpResponseError
 from dotenv import load_dotenv
+import time
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
+
+class CostCache:
+    """Simple in-memory cache with TTL for Azure Cost API responses"""
+    def __init__(self, ttl_seconds: int = 600):  # 10 minutes default
+        self.cache: Dict[str, tuple[Any, float]] = {}
+        self.ttl = ttl_seconds
+    
+    def get(self, key: str) -> Optional[Any]:
+        if key in self.cache:
+            value, timestamp = self.cache[key]
+            if time.time() - timestamp < self.ttl:
+                logger.info(f"Cache HIT for key: {key[:50]}...")
+                return value
+            else:
+                del self.cache[key]
+                logger.info(f"Cache EXPIRED for key: {key[:50]}...")
+        logger.info(f"Cache MISS for key: {key[:50]}...")
+        return None
+    
+    def set(self, key: str, value: Any):
+        self.cache[key] = (value, time.time())
+        logger.info(f"Cache SET for key: {key[:50]}...")
+    
+    def clear(self):
+        self.cache.clear()
 
 class CostAgent:
     def __init__(self):
@@ -24,6 +52,9 @@ class CostAgent:
         self.credential = None
         self.cost_client = None
         self.enabled = False
+        
+        # Cache for API responses - 10 minute TTL
+        self.cache = CostCache(ttl_seconds=600)
         
     async def initialize(self):
         try:
@@ -59,7 +90,7 @@ class CostAgent:
         self.status = "stopped"
     
     async def analyze_costs(self, start_date: datetime, end_date: datetime, group_by: str) -> Dict[str, Any]:
-        """Analyze cost data"""
+        """Analyze cost data with caching to avoid rate limits"""
         if not self.enabled:
             # Fallback to mock data if Azure is not configured
             return {
@@ -70,37 +101,28 @@ class CostAgent:
                     {"service": "storage", "cost": 3500},
                     {"service": "network", "cost": 2000}
                 ],
+                "history": [
+                    {"date": "2025-11-01", "cost": 400},
+                    {"date": "2025-11-02", "cost": 420},
+                    {"date": "2025-11-03", "cost": 390}
+                ],
                 "trend": "increasing",
                 "change_percent": 8.5
             }
 
+        # Create cache key from request parameters
+        cache_key = hashlib.md5(
+            f"{start_date.isoformat()}_{end_date.isoformat()}_{group_by}".encode()
+        ).hexdigest()
+        
+        # Check cache first
+        cached_result = self.cache.get(cache_key)
+        if cached_result:
+            return cached_result
+
         try:
             # Query Azure Cost Management for current period
             scope = f"/subscriptions/{self.subscription_id}"
-            
-            # Helper to query cost
-            async def query_period(s_date, e_date):
-                query_params = {
-                    "type": "Usage",
-                    "timeframe": "Custom",
-                    "timePeriod": {
-                        "from": s_date.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                        "to": e_date.strftime("%Y-%m-%dT%H:%M:%S+00:00")
-                    },
-                    "dataset": {
-                        "granularity": "None",
-                        "aggregation": {
-                            "totalCost": {"name": "Cost", "function": "Sum"}
-                        },
-                        "grouping": [
-                            {"type": "Dimension", "name": "ServiceName"}
-                        ]
-                    }
-                }
-                return self.cost_client.query.usage(scope, parameters=query_params)
-
-            # 1. Get Current Period Data with Daily Granularity for Trend Chart
-            logger.info(f"Querying Azure Cost from {start_date} to {end_date}")
             
             # Helper for daily query
             async def query_daily(s_date, e_date):
@@ -141,6 +163,9 @@ class CostAgent:
                 }
                 return self.cost_client.query.usage(scope, parameters=query_params)
 
+            # 1. Get Current Period Data with Daily Granularity for Trend Chart
+            logger.info(f"Querying Azure Cost from {start_date} to {end_date}")
+            
             try:
                 # Fetch Breakdown
                 result_breakdown = await query_breakdown(start_date, end_date)
@@ -151,6 +176,23 @@ class CostAgent:
                 rows_daily = result_daily.rows
                 
                 logger.info(f"Azure Cost Query returned {len(rows_breakdown)} breakdown rows and {len(rows_daily)} daily rows")
+            except HttpResponseError as e:
+                if e.status_code == 429:
+                    logger.warning(f"Azure API rate limit hit (429). Returning partial/cached data.")
+                    # Return empty data structure instead of crashing
+                    return {
+                        "total_cost": 0.0,
+                        "breakdown": [],
+                        "history": [],
+                        "trend": "stable",
+                        "change_percent": 0.0,
+                        "currency": "INR",
+                        "mode": "rate_limited",
+                        "error": "Rate limit exceeded. Please try again in a few minutes."
+                    }
+                logger.error(f"Azure Cost Query FAILED: {e}")
+                logger.exception("Full stack trace:")
+                raise e
             except Exception as e:
                 logger.error(f"Azure Cost Query FAILED: {e}")
                 logger.exception("Full stack trace:")
@@ -202,6 +244,12 @@ class CostAgent:
                 prev_result = await query_breakdown(prev_start, prev_end)
                 prev_total = sum(float(r[0]) for r in prev_result.rows)
                 logger.info(f"Previous Total Cost: {prev_total}")
+            except HttpResponseError as e:
+                if e.status_code == 429:
+                    logger.warning(f"Rate limit on previous period query, skipping trend calculation")
+                    prev_total = 0.0
+                else:
+                    raise
             except Exception as e:
                 logger.warning(f"Failed to fetch previous period data: {e}")
                 prev_total = 0.0
@@ -220,15 +268,20 @@ class CostAgent:
                 change_percent = 100.0
                 trend = "increasing"
 
-            return {
+            result = {
                 "total_cost": total_cost,
                 "breakdown": breakdown,
                 "history": history,
                 "trend": trend,
                 "change_percent": round(change_percent, 1),
-                "currency": rows_breakdown[0][2] if rows_breakdown else "USD",
+                "currency": rows_breakdown[0][2] if rows_breakdown else "INR",
                 "mode": "real"
             }
+            
+            # Cache the successful result
+            self.cache.set(cache_key, result)
+            
+            return result
             
         except Exception as e:
             logger.error(f"Error querying Azure costs: {e}")
