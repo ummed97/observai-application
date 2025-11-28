@@ -440,13 +440,15 @@ class DiagnoserAgent:
     async def _handle_cost_query(self, query: str) -> Dict[str,Any]:
         """Handle cost-related queries with real Azure data"""
         try:
-            from agents.orchestrator import agent_orchestrator
+            # Avoid circular import - get orchestrator from main app context
+            from main import app
+            orchestrator = app.state.orchestrator
             
             # Fetch last 30 days of cost data
             end_date = datetime.utcnow()
             start_date = end_date - timedelta(days=30)
             
-            cost_data = await agent_orchestrator.get_cost_analysis(start_date, end_date, "service")
+            cost_data = await orchestrator.get_cost_analysis(start_date, end_date, "service")
             
             if not cost_data or cost_data.get("mode") == "mock":
                 return {
@@ -495,6 +497,7 @@ class DiagnoserAgent:
                 "sources": [],
                 "visualizations": None
             }
+    
     
     async def correlate_signals(
 

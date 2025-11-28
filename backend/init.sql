@@ -14,7 +14,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS timescaledb;
 
 CREATE TABLE IF NOT EXISTS metrics (
-    id VARCHAR PRIMARY KEY,
+    id VARCHAR DEFAULT uuid_generate_v4()::text PRIMARY KEY,
     timestamp TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     source VARCHAR NOT NULL,
     metric_name VARCHAR NOT NULL,
@@ -28,6 +28,7 @@ CREATE INDEX IF NOT EXISTS idx_metric_time_name ON metrics (timestamp, metric_na
 CREATE INDEX IF NOT EXISTS idx_metric_source_name ON metrics (source, metric_name);
 
 SELECT create_hypertable('metrics', 'timestamp', if_not_exists => TRUE);
+
 
 -- Create function for updating updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
