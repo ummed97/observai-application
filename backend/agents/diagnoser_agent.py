@@ -440,9 +440,16 @@ class DiagnoserAgent:
     async def _handle_cost_query(self, query: str) -> Dict[str,Any]:
         """Handle cost-related queries with real Azure data"""
         try:
-            # Avoid circular import - get orchestrator from main app context
-            from main import app
-            orchestrator = app.state.orchestrator
+            # Import the global orchestrator instance from main module
+            import main
+            orchestrator = main.agent_orchestrator
+            
+            if not orchestrator:
+                return {
+                    "answer": "Cost analysis system is initializing. Please try again in a moment.",
+                    "sources": [],
+                    "visualizations": None
+                }
             
             # Fetch last 30 days of cost data
             end_date = datetime.utcnow()
@@ -492,11 +499,13 @@ class DiagnoserAgent:
             
         except Exception as e:
             logger.error(f"Error handling cost query: {e}")
+            logger.exception("Full traceback:")
             return {
                 "answer": f"I encountered an error fetching cost data: {str(e)}",
                 "sources": [],
                 "visualizations": None
             }
+    
     
     
     async def correlate_signals(
