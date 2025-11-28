@@ -322,6 +322,13 @@ class DiagnoserAgent:
         try:
             self.last_action = f"Processing query: {query[:50]}..."
             
+            # Check if this is a cost-related query and route to real data
+            cost_keywords = ['cost', 'spending', 'expense', 'price', 'bill', 'waste', 'saving']
+            is_cost_query = any(keyword in query.lower() for keyword in cost_keywords)
+            
+            if is_cost_query:
+                return await self._handle_cost_query(query)
+            
             # Prepare context
             context_str = json.dumps(context or {}, indent=2, default=str)
             
@@ -357,11 +364,10 @@ class DiagnoserAgent:
                         # Handle response content
                         content = response.content if hasattr(response, 'content') else str(response)
                         
-                        # Manually construct result
+                        # Manually construct result (no confidence)
                         return {
                             "answer": content,
                             "sources": [],
-                            "confidence": 0.8,
                             "visualizations": None
                         }
                     else:
@@ -392,14 +398,12 @@ class DiagnoserAgent:
                             parsed_data = {
                                 "answer": content.replace("```json", "").replace("```", "").strip(),
                                 "sources": [],
-                                "confidence": 0.5,
                                 "visualizations": None
                             }
 
                         return {
                             "answer": parsed_data.get("answer", "No answer provided"),
                             "sources": parsed_data.get("sources", []),
-                            "confidence": parsed_data.get("confidence", 0.0),
                             "visualizations": parsed_data.get("visualizations", None)
                         }
                     
@@ -430,11 +434,70 @@ class DiagnoserAgent:
             return {
                 "answer": "I'm having trouble processing that query. Please try rephrasing or check if the system is functioning properly.",
                 "sources": [],
-                "confidence": 0.0,
+                "visualizations": None
+            }
+    
+    async def _handle_cost_query(self, query: str) -> Dict[str,Any]:
+        """Handle cost-related queries with real Azure data"""
+        try:
+            from agents.orchestrator import agent_orchestrator
+            
+            # Fetch last 30 days of cost data
+            end_date = datetime.utcnow()
+            start_date = end_date - timedelta(days=30)
+            
+            cost_data = await agent_orchestrator.get_cost_analysis(start_date, end_date, "service")
+            
+            if not cost_data or cost_data.get("mode") == "mock":
+                return {
+                    "answer": "I don't have access to real cost data at the moment. Please ensure Azure integration is configured.",
+                    "sources": [],
+                    "visualizations": None
+                }
+            
+            # Format the response based on the query
+            breakdown = cost_data.get("breakdown", [])
+            total_cost = cost_data.get("total_cost", 0)
+            
+            # Sort by cost descending
+            breakdown.sort(key=lambda x: x.get("cost", 0), reverse=True)
+            
+            # Build answer with real service names
+            answer = f"Based on actual Azure spending for the last 30 days:\\n\\n"
+            answer += f"**Total Cost:** ₹{total_cost:,.2f}\\n\\n"
+            answer += "**Top Services by Cost:**\\n\\n"
+            
+            for i, service in enumerate(breakdown[:10], 1):
+                service_name = service.get("service", "Unknown")
+                cost = service.get("cost", 0)
+                percentage = (cost / total_cost * 100) if total_cost > 0 else 0
+                answer += f"{i}. **{service_name}**: ₹{cost:,.2f} ({percentage:.1f}% of total)\\n"
+            
+            # Add visualization data
+            viz_data = {
+                "type": "bar_chart",
+                "data": [
+                    {"name": s.get("service", "Unknown"), "value": s.get("cost", 0)}
+                    for s in breakdown[:10]
+                ]
+            }
+            
+            return {
+                "answer": answer,
+                "sources": ["Azure Cost Management API"],
+                "visualizations": viz_data
+            }
+            
+        except Exception as e:
+            logger.error(f"Error handling cost query: {e}")
+            return {
+                "answer": f"I encountered an error fetching cost data: {str(e)}",
+                "sources": [],
                 "visualizations": None
             }
     
     async def correlate_signals(
+
         self,
         metrics: List[Dict[str, Any]],
         logs: List[Dict[str, Any]],

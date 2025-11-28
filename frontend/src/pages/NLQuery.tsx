@@ -230,6 +230,7 @@ export const NLQuery: React.FC = () => {
 
                     {message.visualizations && renderVisualization(message.visualizations)}
 
+
                     {message.sources && message.sources.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-gray-200">
                         <p className="text-xs text-gray-600 font-medium mb-1">Sources:</p>
@@ -241,19 +242,13 @@ export const NLQuery: React.FC = () => {
                       </div>
                     )}
 
-                    {message.confidence !== undefined && (
-                      <div className="mt-2 flex items-center text-xs text-gray-500">
-                        <TrendingUp className="w-3 h-3 mr-1" />
-                        <span>Confidence: {(message.confidence * 100).toFixed(0)}%</span>
-                      </div>
-                    )}
-
                     <div className="mt-2 text-xs text-gray-500">
                       {message.timestamp.toLocaleTimeString()}
                     </div>
                   </div>
                 </div>
               ))}
+
 
               {loading && (
                 <div className="flex justify-start">
