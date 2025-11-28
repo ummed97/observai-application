@@ -100,13 +100,18 @@ class DataCollector:
             if timestamp and hasattr(timestamp, 'tzinfo') and timestamp.tzinfo is not None:
                 timestamp = timestamp.replace(tzinfo=None)
             
+            # Convert labels dict to JSON string
+            import json
+            labels = metric.get("labels", {})
+            labels_json = json.dumps(labels) if isinstance(labels, dict) else labels
+            
             await self.db_pool.execute(
                 query,
                 timestamp,
                 metric.get("source"),
                 metric.get("metric_name"),
                 metric.get("value"),
-                metric.get("labels", {})
+                labels_json
             )
             
         except Exception as e:

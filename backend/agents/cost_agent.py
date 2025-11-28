@@ -110,9 +110,12 @@ class CostAgent:
                 "change_percent": 8.5
             }
 
-        # Create cache key from request parameters
+        # Create cache key from request parameters using date strings (not full ISO timestamps)
+        # This ensures the same cache key is used even if milliseconds differ on refresh
+        start_date_str = start_date.strftime("%Y-%m-%d")
+        end_date_str = end_date.strftime("%Y-%m-%d")
         cache_key = hashlib.md5(
-            f"{start_date.isoformat()}_{end_date.isoformat()}_{group_by}".encode()
+            f"{start_date_str}_{end_date_str}_{group_by}".encode()
         ).hexdigest()
         
         # Check cache first
