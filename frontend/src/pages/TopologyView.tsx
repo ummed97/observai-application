@@ -53,6 +53,10 @@ export const TopologyView: React.FC = () => {
       const response = await fetch(`${API_BASE}/api/v1/topology/graph`, { headers });
       const data = await response.json();
 
+      console.log('Topology API Response:', data);
+      console.log('Nodes count:', data.nodes?.length || 0);
+      console.log('Edges count:', data.edges?.length || 0);
+
       setGraphData(data);
       setLoading(false);
     } catch (error) {
