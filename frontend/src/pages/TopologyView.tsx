@@ -19,6 +19,8 @@ interface TopologyNode {
   status: string;
   metadata: Record<string, any>;
   dependencies: string[];
+  resource_group?: string;
+  location?: string;
   // Simulation properties
   x?: number;
   y?: number;
