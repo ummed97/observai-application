@@ -96,8 +96,6 @@ export const TopologyView: React.FC = () => {
   };
 
   const renderGraph = () => {
-    if (!svgRef.current) return null;
-
     const width = 800;
     const height = 600;
     const nodePositions = new Map<string, { x: number; y: number }>();
@@ -109,7 +107,7 @@ export const TopologyView: React.FC = () => {
     });
 
     return (
-      <svg ref={svgRef} width={width} height={height} className="border border-gray-300 rounded-lg bg-white">
+      <svg width={width} height={height} className="border border-gray-300 rounded-lg bg-white">
         {/* Draw edges */}
         <g>
           {graphData.edges.map((edge, index) => {
