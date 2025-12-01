@@ -25,6 +25,7 @@ import jwt
 
 from agents.orchestrator import AgentOrchestrator
 from data_ingestion.collector import DataCollector
+from data_ingestion.app_insights_collector import AppInsightsCollector
 from knowledge_graph.graph_engine import KnowledgeGraphEngine
 from routers.auth import router as auth_router
 
@@ -52,6 +53,7 @@ Base = declarative_base()
 
 agent_orchestrator: Optional[AgentOrchestrator] = None
 data_collector: Optional[DataCollector] = None
+app_insights_collector: Optional[AppInsightsCollector] = None
 knowledge_graph: Optional[KnowledgeGraphEngine] = None
 websocket_connections: List[WebSocket] = []
 
@@ -64,13 +66,14 @@ ALGORITHM = "HS256"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan management"""
-    global agent_orchestrator, data_collector, knowledge_graph
+    global agent_orchestrator, data_collector, app_insights_collector, knowledge_graph
 
     logger.info("Starting AI-Agentic Observability Platform...")
 
     # Initialize core systems
     agent_orchestrator = AgentOrchestrator()
     data_collector = DataCollector()
+    app_insights_collector = AppInsightsCollector()
     knowledge_graph = KnowledgeGraphEngine()
 
     # Start background tasks
@@ -394,6 +397,53 @@ async def predict_failures(user=Depends(get_current_user)):
     """Get failure predictions"""
     try:
         return await agent_orchestrator.predict_failures()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ===== APPLICATION INSIGHTS =====
+
+@app.get("/api/v1/insights/logs")
+async def get_application_logs(
+    hours: int = 1,
+    severity: str = None,
+    user=Depends(get_current_user)
+):
+    """Get application logs from Application Insights"""
+    try:
+        if not app_insights_collector or not app_insights_collector.enabled:
+            return {"status": "disabled", "message": "Application Insights not configured", "logs": []}
+        return await app_insights_collector.get_recent_logs(hours, severity)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/v1/insights/exceptions")
+async def get_exceptions(hours: int = 24, user=Depends(get_current_user)):
+    """Get recent exceptions from Application Insights"""
+    try:
+        if not app_insights_collector or not app_insights_collector.enabled:
+            return {"status": "disabled", "message": "Application Insights not configured", "exceptions": []}
+        return await app_insights_collector.get_exceptions(hours)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/v1/insights/performance")
+async def get_performance_metrics(hours: int = 24, user=Depends(get_current_user)):
+    """Get request performance metrics"""
+    try:
+        if not app_insights_collector or not app_insights_collector.enabled:
+            return {"status": "disabled", "message": "Application Insights not configured", "metrics": []}
+        result = await app_insights_collector.get_request_metrics(hours)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/v1/insights/summary")
+async def get_performance_summary(hours: int = 1, user=Depends(get_current_user)):
+    """Get overall performance summary"""
+    try:
+        if not app_insights_collector or not app_insights_collector.enabled:
+            return {"status": "disabled", "summary": {}}
+        return await app_insights_collector.get_performance_summary(hours)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
