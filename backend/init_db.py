@@ -27,8 +27,6 @@ async def init_db():
         if os.path.exists(init_sql_path):
             with open(init_sql_path, 'r') as f:
                 sql_content = f.read()
-                # Split by semicolon to execute statements individually
-                # This is a simple split and might need refinement for complex SQL
                 statements = sql_content.split(';')
                 for statement in statements:
                     if statement.strip():
@@ -38,6 +36,20 @@ async def init_db():
                             print(f"Warning executing statement: {e}")
         else:
             print("init.sql not found!")
+
+        # 3. Explicitly create chat_history table (fallback)
+        print("Ensuring chat_history table exists...")
+        await conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS chat_history (
+                id VARCHAR PRIMARY KEY,
+                user_id VARCHAR,
+                query VARCHAR,
+                response VARCHAR,
+                timestamp TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() AT TIME ZONE 'utc'),
+                tenant_id VARCHAR
+            );
+        """))
+        print("chat_history table check completed")
 
     print("Database initialization completed!")
 
