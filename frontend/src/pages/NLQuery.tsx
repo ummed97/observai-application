@@ -390,13 +390,34 @@ export const NLQuery: React.FC = () => {
                 ) : (
                   <div className="space-y-3">
                     {chatHistory.map((item) => (
-                      <div key={item.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                        <p className="text-sm font-medium text-gray-900 mb-1">{item.query}</p>
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          setMessages([
+                            {
+                              id: `query-${item.id}`,
+                              type: 'user',
+                              content: item.query,
+                              timestamp: new Date(item.timestamp)
+                            },
+                            {
+                              id: `response-${item.id}`,
+                              type: 'ai',
+                              content: item.response,
+                              timestamp: new Date(item.timestamp)
+                            }
+                          ]);
+                          // On mobile/small screens, we might want to close the sidebar
+                          // setShowHistory(false); 
+                        }}
+                        className="w-full text-left bg-gray-50 hover:bg-gray-100 rounded-lg p-3 border border-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <p className="text-sm font-medium text-gray-900 mb-1 line-clamp-2">{item.query}</p>
                         <p className="text-xs text-gray-600 line-clamp-2 mb-2">{item.response}</p>
                         <p className="text-xs text-gray-400">
                           {new Date(item.timestamp).toLocaleString()}
                         </p>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 )}
