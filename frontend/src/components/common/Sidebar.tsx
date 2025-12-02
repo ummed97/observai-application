@@ -13,12 +13,10 @@ import {
   User,
   ChevronRight
 } from 'lucide-react';
-import ChatHistoryModal from '../chat/ChatHistoryModal';
 
 const Sidebar: React.FC = () => {
   const location = useLocation();
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showChatHistory, setShowChatHistory] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
@@ -107,8 +105,8 @@ const Sidebar: React.FC = () => {
             <div className="py-1">
               <button
                 onClick={() => {
-                  setShowChatHistory(true);
                   setShowUserMenu(false);
+                  // Add personalization handler here
                 }}
                 className="flex items-center space-x-3 px-4 py-3 hover:bg-gray-700 transition-colors text-gray-300 hover:text-white w-full text-left"
               >
@@ -155,12 +153,6 @@ const Sidebar: React.FC = () => {
           </div>
         )}
       </div>
-
-      {/* Chat History Modal */}
-      <ChatHistoryModal
-        isOpen={showChatHistory}
-        onClose={() => setShowChatHistory(false)}
-      />
     </div>
   );
 };
