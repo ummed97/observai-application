@@ -28,7 +28,8 @@ const ChatHistoryModal: React.FC<ChatHistoryModalProps> = ({ isOpen, onClose }) 
         setLoading(true);
         try {
             const token = localStorage.getItem('auth_token');
-            const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/v1/chat/history`, {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            const response = await axios.get(`${apiUrl}/api/v1/chat/history`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setHistory(response.data);
@@ -44,7 +45,8 @@ const ChatHistoryModal: React.FC<ChatHistoryModalProps> = ({ isOpen, onClose }) 
 
         try {
             const token = localStorage.getItem('auth_token');
-            await axios.delete(`${process.env.REACT_APP_API_URL}/api/v1/chat/history`, {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            await axios.delete(`${apiUrl}/api/v1/chat/history`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setHistory([]);

@@ -9,13 +9,15 @@ import {
   Activity,
   LogOut,
   Settings,
-  History
+  HelpCircle,
+  User,
+  ChevronRight
 } from 'lucide-react';
 import ChatHistoryModal from '../chat/ChatHistoryModal';
 
 const Sidebar: React.FC = () => {
   const location = useLocation();
-  const [showSettings, setShowSettings] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [showChatHistory, setShowChatHistory] = useState(false);
 
   const handleLogout = () => {
@@ -32,6 +34,9 @@ const Sidebar: React.FC = () => {
   ];
 
   const isActive = (path: string) => location.pathname === path;
+
+  const userEmail = localStorage.getItem('user_email') || 'User';
+  const userInitial = userEmail.charAt(0).toUpperCase();
 
   return (
     <div className="w-64 bg-gray-900 text-white flex flex-col">
@@ -66,54 +71,89 @@ const Sidebar: React.FC = () => {
         </ul>
       </nav>
 
-      {/* User Profile & Settings */}
-      <div className="p-4 border-t border-gray-800">
-        <div className="flex items-center space-x-3 px-4 py-3 mb-2 text-gray-300">
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center shrink-0">
-            <span className="text-sm font-bold text-white">
-              {localStorage.getItem('user_email')?.charAt(0).toUpperCase() || 'U'}
-            </span>
+      {/* User Profile Menu */}
+      <div className="p-4 border-t border-gray-800 relative">
+        {/* User Profile Button */}
+        <button
+          onClick={() => setShowUserMenu(!showUserMenu)}
+          className="flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors text-gray-300 hover:bg-gray-800 hover:text-white w-full"
+        >
+          <div className="w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center shrink-0">
+            <span className="text-sm font-bold text-white">{userInitial}</span>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white break-all" title={localStorage.getItem('user_email') || 'User'}>
-              {localStorage.getItem('user_email') || 'User'}
-            </p>
+          <div className="flex-1 min-w-0 text-left">
+            <p className="text-sm font-medium text-white truncate">{userEmail.split('@')[0]}</p>
+            <p className="text-xs text-gray-400 truncate">@{userEmail.split('@')[0]}</p>
           </div>
-        </div>
+        </button>
 
-        {/* Settings Button */}
-        <div className="relative">
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors text-gray-300 hover:bg-gray-800 hover:text-white w-full"
-          >
-            <Settings className="w-5 h-5" />
-            <span className="font-medium">Settings</span>
-          </button>
+        {/* User Dropdown Menu */}
+        {showUserMenu && (
+          <div className="absolute bottom-full left-4 right-4 mb-2 bg-gray-800 rounded-lg shadow-xl border border-gray-700 overflow-hidden">
+            {/* User Info Header */}
+            <div className="px-4 py-3 border-b border-gray-700">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-pink-500 rounded-full flex items-center justify-center shrink-0">
+                  <span className="text-base font-bold text-white">{userInitial}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white truncate">{userEmail.split('@')[0]}</p>
+                  <p className="text-xs text-gray-400 truncate">{userEmail}</p>
+                </div>
+              </div>
+            </div>
 
-          {/* Settings Dropdown */}
-          {showSettings && (
-            <div className="absolute bottom-full left-0 right-0 mb-2 bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden">
+            {/* Menu Options */}
+            <div className="py-1">
+              <button
+                onClick={() => {
+                  setShowUserMenu(false);
+                  // Add personalization handler here
+                }}
+                className="flex items-center space-x-3 px-4 py-3 hover:bg-gray-700 transition-colors text-gray-300 hover:text-white w-full text-left"
+              >
+                <User className="w-5 h-5" />
+                <span className="font-medium">Personalization</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowUserMenu(false);
+                  // Add settings handler here
+                }}
+                className="flex items-center space-x-3 px-4 py-3 hover:bg-gray-700 transition-colors text-gray-300 hover:text-white w-full text-left"
+              >
+                <Settings className="w-5 h-5" />
+                <span className="font-medium">Settings</span>
+              </button>
+
+              {/* Help with submenu */}
               <button
                 onClick={() => {
                   setShowChatHistory(true);
-                  setShowSettings(false);
+                  setShowUserMenu(false);
                 }}
-                className="flex items-center space-x-3 px-4 py-3 hover:bg-gray-700 transition-colors text-gray-300 hover:text-white w-full"
+                className="flex items-center justify-between px-4 py-3 hover:bg-gray-700 transition-colors text-gray-300 hover:text-white w-full text-left"
               >
-                <History className="w-5 h-5" />
-                <span className="font-medium">Chat History</span>
+                <div className="flex items-center space-x-3">
+                  <HelpCircle className="w-5 h-5" />
+                  <span className="font-medium">Help</span>
+                </div>
+                <ChevronRight className="w-4 h-4" />
               </button>
+
+              <div className="border-t border-gray-700 my-1"></div>
+
               <button
                 onClick={handleLogout}
-                className="flex items-center space-x-3 px-4 py-3 hover:bg-red-600 transition-colors text-gray-300 hover:text-white w-full"
+                className="flex items-center space-x-3 px-4 py-3 hover:bg-red-600 transition-colors text-gray-300 hover:text-white w-full text-left"
               >
                 <LogOut className="w-5 h-5" />
-                <span className="font-medium">Sign out</span>
+                <span className="font-medium">Log out</span>
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Chat History Modal */}
@@ -126,4 +166,3 @@ const Sidebar: React.FC = () => {
 };
 
 export default Sidebar;
-
