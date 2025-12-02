@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -7,11 +7,16 @@ import {
   AlertTriangle,
   DollarSign,
   Activity,
-  LogOut
+  LogOut,
+  Settings,
+  History
 } from 'lucide-react';
+import ChatHistoryModal from '../chat/ChatHistoryModal';
 
 const Sidebar: React.FC = () => {
   const location = useLocation();
+  const [showSettings, setShowSettings] = useState(false);
+  const [showChatHistory, setShowChatHistory] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
@@ -61,7 +66,7 @@ const Sidebar: React.FC = () => {
         </ul>
       </nav>
 
-      {/* User Profile & Logout */}
+      {/* User Profile & Settings */}
       <div className="p-4 border-t border-gray-800">
         <div className="flex items-center space-x-3 px-4 py-3 mb-2 text-gray-300">
           <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center shrink-0">
@@ -75,16 +80,50 @@ const Sidebar: React.FC = () => {
             </p>
           </div>
         </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors text-gray-300 hover:bg-red-600 hover:text-white w-full"
-        >
-          <LogOut className="w-5 h-5" />
-          <span className="font-medium">Sign out</span>
-        </button>
+
+        {/* Settings Button */}
+        <div className="relative">
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors text-gray-300 hover:bg-gray-800 hover:text-white w-full"
+          >
+            <Settings className="w-5 h-5" />
+            <span className="font-medium">Settings</span>
+          </button>
+
+          {/* Settings Dropdown */}
+          {showSettings && (
+            <div className="absolute bottom-full left-0 right-0 mb-2 bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden">
+              <button
+                onClick={() => {
+                  setShowChatHistory(true);
+                  setShowSettings(false);
+                }}
+                className="flex items-center space-x-3 px-4 py-3 hover:bg-gray-700 transition-colors text-gray-300 hover:text-white w-full"
+              >
+                <History className="w-5 h-5" />
+                <span className="font-medium">Chat History</span>
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex items-center space-x-3 px-4 py-3 hover:bg-red-600 transition-colors text-gray-300 hover:text-white w-full"
+              >
+                <LogOut className="w-5 h-5" />
+                <span className="font-medium">Sign out</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Chat History Modal */}
+      <ChatHistoryModal
+        isOpen={showChatHistory}
+        onClose={() => setShowChatHistory(false)}
+      />
     </div>
   );
 };
 
 export default Sidebar;
+

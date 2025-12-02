@@ -23,6 +23,20 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+class ChatHistory(Base):
+    """AI Query chat history per user"""
+    __tablename__ = "chat_history"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey('users.id'), nullable=False, index=True)
+    query = Column(Text, nullable=False)
+    response = Column(Text, nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+
+    __table_args__ = (
+        Index('idx_chat_user_time', 'user_id', 'timestamp'),
+    )
+
 class Metric(Base):
     """Time-series metrics data"""
     __tablename__ = "metrics"

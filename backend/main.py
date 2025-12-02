@@ -28,6 +28,7 @@ from data_ingestion.collector import DataCollector
 from data_ingestion.app_insights_collector import AppInsightsCollector
 from knowledge_graph.graph_engine import KnowledgeGraphEngine
 from routers.auth import router as auth_router
+from routers.chat import router as chat_router
 
 # Load environment variables
 # We check if OPENAI_API_KEY is missing or looks like a placeholder (often passed by docker-compose defaults)
@@ -108,6 +109,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth_router)
+app.include_router(chat_router)
 
 # ===== MODELS =====
 
@@ -323,10 +325,21 @@ async def get_node_dependencies(node_id: str, depth: int = 3, user=Depends(get_c
 # ===== NATURAL LANGUAGE INTERFACE =====
 
 @app.post("/api/v1/query", response_model=NLQueryResponse)
-async def natural_language_query(request: NLQueryRequest, user=Depends(get_current_user)):
+async def natural_language_query(request: NLQueryRequest, user=Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     """Process natural language query"""
     try:
         result = await agent_orchestrator.process_nl_query(request.query, request.context)
+        
+        # Save to chat history
+        from models.database import ChatHistory
+        chat_entry = ChatHistory(
+            user_id=user.get("user_id"),
+            query=request.query,
+            response=result.get("answer", "")
+        )
+        db.add(chat_entry)
+        await db.commit()
+        
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
