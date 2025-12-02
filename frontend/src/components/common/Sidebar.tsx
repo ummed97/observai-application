@@ -107,8 +107,8 @@ const Sidebar: React.FC = () => {
             <div className="py-1">
               <button
                 onClick={() => {
+                  setShowChatHistory(true);
                   setShowUserMenu(false);
-                  // Add personalization handler here
                 }}
                 className="flex items-center space-x-3 px-4 py-3 hover:bg-gray-700 transition-colors text-gray-300 hover:text-white w-full text-left"
               >
@@ -127,11 +127,11 @@ const Sidebar: React.FC = () => {
                 <span className="font-medium">Settings</span>
               </button>
 
-              {/* Help with submenu */}
+              {/* Help */}
               <button
                 onClick={() => {
-                  setShowChatHistory(true);
                   setShowUserMenu(false);
+                  // Add help handler here
                 }}
                 className="flex items-center justify-between px-4 py-3 hover:bg-gray-700 transition-colors text-gray-300 hover:text-white w-full text-left"
               >
