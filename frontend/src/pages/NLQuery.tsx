@@ -255,13 +255,32 @@ export const NLQuery: React.FC = () => {
                   <h1 className="text-2xl font-bold text-gray-900">Natural Language Query</h1>
                   <p className="text-gray-600 text-sm mt-1">Ask questions about your infrastructure in plain English</p>
                 </div>
-                <button
-                  onClick={() => setShowHistory(!showHistory)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                >
-                  <History className="w-5 h-5" />
-                  <span className="text-sm font-medium">History</span>
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => {
+                      setMessages([{
+                        id: '1',
+                        type: 'assistant',
+                        content: 'Hello! I\'m your AI observability assistant. Ask me anything about your infrastructure, incidents, metrics, or predictions.',
+                        timestamp: new Date()
+                      }]);
+                      // Generate new session ID (simple random string)
+                      const newSessionId = Math.random().toString(36).substring(7);
+                      // We'll use this session ID for subsequent requests
+                      // For now, just clearing the view is enough for "New Chat"
+                    }}
+                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  >
+                    <span className="text-sm font-medium">New Chat</span>
+                  </button>
+                  <button
+                    onClick={() => setShowHistory(!showHistory)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                  >
+                    <History className="w-5 h-5" />
+                    <span className="text-sm font-medium">History</span>
+                  </button>
+                </div>
               </div>
             </div>
 

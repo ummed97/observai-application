@@ -43,12 +43,20 @@ async def init_db():
             CREATE TABLE IF NOT EXISTS chat_history (
                 id VARCHAR PRIMARY KEY,
                 user_id VARCHAR,
+                session_id VARCHAR,
                 query VARCHAR,
                 response VARCHAR,
                 timestamp TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() AT TIME ZONE 'utc'),
                 tenant_id VARCHAR
             );
         """))
+        
+        # Attempt to add session_id column if it doesn't exist (for migration)
+        try:
+            await conn.execute(text("ALTER TABLE chat_history ADD COLUMN IF NOT EXISTS session_id VARCHAR;"))
+        except Exception as e:
+            print(f"Note: Could not alter table (might already exist): {e}")
+            
         print("chat_history table check completed")
 
     print("Database initialization completed!")

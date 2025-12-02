@@ -29,6 +29,7 @@ class ChatHistory(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, ForeignKey('users.id'), nullable=False, index=True)
+    session_id = Column(String, index=True)
     query = Column(Text, nullable=False)
     response = Column(Text, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow, index=True)

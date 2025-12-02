@@ -343,6 +343,7 @@ async def natural_language_query(request: NLQueryRequest, user=Depends(get_curre
             from models.database import ChatHistory
             chat_entry = ChatHistory(
                 user_id=user.get("sub"),
+                session_id=request.session_id,
                 query=request.query,
                 response=result.get("answer", "")
             )
