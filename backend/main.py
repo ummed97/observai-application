@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 # Database setup
 
-DATABASE_URL = "postgresql+asyncpg://observai:observai@localhost:5432/observai"
+DATABASE_URL = "postgresql+asyncpg://observai:observai@observai-postgres:5432/observai"
 engine = create_async_engine(DATABASE_URL, echo=True)
 AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 Base = declarative_base()
