@@ -330,15 +330,20 @@ async def natural_language_query(request: NLQueryRequest, user=Depends(get_curre
     try:
         result = await agent_orchestrator.process_nl_query(request.query, request.context)
         
-        # Save to chat history
-        from models.database import ChatHistory
-        chat_entry = ChatHistory(
-            user_id=user.get("user_id"),
-            query=request.query,
-            response=result.get("answer", "")
-        )
-        db.add(chat_entry)
-        await db.commit()
+        # Save to chat history (non-blocking, don't fail the query if this fails)
+        try:
+            from models.database import ChatHistory
+            chat_entry = ChatHistory(
+                user_id=user.get("user_id"),
+                query=request.query,
+                response=result.get("answer", "")
+            )
+            db.add(chat_entry)
+            await db.commit()
+        except Exception as db_error:
+            logger.error(f"Failed to save chat history: {db_error}")
+            await db.rollback()
+            # Don't fail the query if chat history save fails
         
         return result
     except Exception as e:
