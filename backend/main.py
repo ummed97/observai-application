@@ -71,6 +71,14 @@ async def lifespan(app: FastAPI):
 
     logger.info("Starting AI-Agentic Observability Platform...")
 
+    # Initialize database
+    try:
+        from init_db import init_db
+        await init_db()
+        logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize database: {e}")
+
     # Initialize core systems
     agent_orchestrator = AgentOrchestrator()
     data_collector = DataCollector()
@@ -334,7 +342,7 @@ async def natural_language_query(request: NLQueryRequest, user=Depends(get_curre
         try:
             from models.database import ChatHistory
             chat_entry = ChatHistory(
-                user_id=user.get("user_id"),
+                user_id=user.get("sub"),
                 query=request.query,
                 response=result.get("answer", "")
             )
