@@ -402,7 +402,7 @@ export const NLQuery: React.FC = () => {
                             },
                             {
                               id: `response-${item.id}`,
-                              type: 'ai',
+                              type: 'assistant',
                               content: item.response,
                               timestamp: new Date(item.timestamp)
                             }
