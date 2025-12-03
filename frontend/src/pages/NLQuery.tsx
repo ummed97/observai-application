@@ -327,8 +327,8 @@ export const NLQuery: React.FC = () => {
                   >
                     <div
                       className={`max-w-[90%] sm:max-w-[80%] rounded-lg p-4 ${msg.type === 'user'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-white border border-gray-200 shadow-sm'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white border border-gray-200 shadow-sm'
                         }`}
                     >
                       <div className="whitespace-pre-wrap text-sm sm:text-base">{msg.content}</div>
@@ -445,8 +445,8 @@ export const NLQuery: React.FC = () => {
                             }
                           }}
                           className={`w-full text-left rounded-lg p-3 border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${sessionId === sessId
-                              ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-500'
-                              : 'bg-gray-50 hover:bg-gray-100 border-gray-200'
+                            ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-500'
+                            : 'bg-gray-50 hover:bg-gray-100 border-gray-200'
                             }`}
                         >
                           <p className="text-sm font-medium text-gray-900 mb-1 line-clamp-2">{firstQuery}</p>
@@ -471,22 +471,4 @@ export const NLQuery: React.FC = () => {
     </div>
   );
 };
-className = "w-full text-left bg-gray-50 hover:bg-gray-100 rounded-lg p-3 border border-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-  >
-                        <p className="text-sm font-medium text-gray-900 mb-1 line-clamp-2">{item.query}</p>
-                        <p className="text-xs text-gray-600 line-clamp-2 mb-2">{item.response}</p>
-                        <p className="text-xs text-gray-400">
-                          {new Date(item.timestamp).toLocaleString()}
-                        </p>
-                      </button >
-                    ))}
-                  </div >
-                )}
-              </div >
-            </div >
-          )}
-        </div >
-      </div >
-    </div >
-  );
-};
+
