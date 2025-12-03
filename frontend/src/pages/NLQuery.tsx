@@ -284,7 +284,7 @@ export const NLQuery: React.FC = () => {
         <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${showHistory ? 'sm:mr-80' : 'mr-0'}`}>
           {/* Header */}
           <div className="bg-white shadow-sm border-b border-gray-200 p-4">
-            <div className="max-w-4xl mx-auto flex items-center justify-between">
+            <div className="flex items-center justify-between px-4">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Natural Language Query</h1>
                 <p className="text-gray-600 text-sm mt-1 hidden sm:block">Ask questions about your infrastructure in plain English</p>
@@ -319,7 +319,7 @@ export const NLQuery: React.FC = () => {
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-6">
-            <div className="max-w-4xl mx-auto space-y-6">
+            <div className="space-y-6 px-4">
               {messages.map((msg) => (
                 <div
                   key={msg.id}
