@@ -14,6 +14,7 @@ from agents.diagnoser_agent import DiagnoserAgent
 from agents.forecaster_agent import ForecasterAgent
 from agents.remediator_agent import RemediatorAgent
 from agents.cost_agent import CostAgent
+from agents.security_agent import SecurityAgent
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,8 @@ class AgentOrchestrator:
             "diagnoser": DiagnoserAgent(),
             "forecaster": ForecasterAgent(),
             "remediator": RemediatorAgent(),
-            "cost": CostAgent()
+            "cost": CostAgent(),
+            "security": SecurityAgent()
         }
         
         self.task_queue: asyncio.Queue = asyncio.Queue()

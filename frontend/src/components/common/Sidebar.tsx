@@ -11,7 +11,8 @@ import {
   Settings,
   HelpCircle,
   User,
-  ChevronRight
+  ChevronRight,
+  Shield
 } from 'lucide-react';
 
 const Sidebar: React.FC = () => {
@@ -28,6 +29,8 @@ const Sidebar: React.FC = () => {
     { path: '/topology', icon: Network, label: 'Topology' },
     { path: '/query', icon: MessageSquare, label: 'AI Query' },
     { path: '/incidents', icon: AlertTriangle, label: 'Incidents' },
+    { path: '/security', icon: Shield, label: 'Security' },
+    { path: '/uptime', icon: Activity, label: 'Uptime Monitor' },
     { path: '/cost', icon: DollarSign, label: 'Cost Analytics' },
   ];
 

@@ -4,6 +4,8 @@ import Dashboard from './pages/Dashboard'
 import { TopologyView } from './pages/TopologyView'
 import { NLQuery } from './pages/NLQuery'
 import Incidents from './pages/Incidents'
+import Security from './pages/Security'
+import Uptime from './pages/Uptime'
 import CostAnalytics from './pages/CostAnalytics'
 import Login from './pages/Login'
 import Signup3D from './pages/Signup3D'
@@ -56,6 +58,18 @@ function App() {
           path="/incidents"
           element={
             isAuthenticated ? <Incidents /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/security"
+          element={
+            isAuthenticated ? <Security /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/uptime"
+          element={
+            isAuthenticated ? <Uptime /> : <Navigate to="/login" />
           }
         />
         <Route
