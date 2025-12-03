@@ -476,8 +476,7 @@ export const NLQuery: React.FC = () => {
           </div>
         )}
       </div>
-    </div>
-    </Layout >
+    </Layout>
   );
 };
 
