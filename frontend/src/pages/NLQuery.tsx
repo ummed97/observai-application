@@ -125,7 +125,10 @@ export const NLQuery: React.FC = () => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ query: input })
+        body: JSON.stringify({
+          query: input,
+          session_id: sessionId
+        })
       });
 
       const data = await response.json();
@@ -361,7 +364,24 @@ export const NLQuery: React.FC = () => {
           {/* Input Area */}
           <div className="bg-white border-t border-gray-200 p-4">
             <div className="w-full px-4">
-              <div className="mb-4 hidden sm:block">
+              <form onSubmit={handleSubmit} className="relative">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Ask a question..."
+                  className="w-full pl-4 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+                  disabled={loading}
+                />
+                <button
+                  type="submit"
+                  disabled={loading || !input.trim()}
+                  className="absolute right-2 top-2 p-1.5 text-gray-400 hover:text-blue-600 disabled:opacity-50 transition-colors"
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              </form>
+              <div className="mt-4 hidden sm:block">
                 <p className="text-sm text-gray-500 mb-3">Try asking:</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {[
@@ -382,23 +402,6 @@ export const NLQuery: React.FC = () => {
                   ))}
                 </div>
               </div>
-              <form onSubmit={handleSubmit} className="relative">
-                <input
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask a question..."
-                  className="w-full pl-4 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
-                  disabled={loading}
-                />
-                <button
-                  type="submit"
-                  disabled={loading || !input.trim()}
-                  className="absolute right-2 top-2 p-1.5 text-gray-400 hover:text-blue-600 disabled:opacity-50 transition-colors"
-                >
-                  <Send className="w-5 h-5" />
-                </button>
-              </form>
             </div>
           </div>
         </div>

@@ -163,6 +163,7 @@ class TopologyNode(BaseModel):
 class NLQueryRequest(BaseModel):
     query: str
     context: Optional[Dict[str, Any]] = None
+    session_id: Optional[str] = None
 
 class NLQueryResponse(BaseModel):
     query: str
