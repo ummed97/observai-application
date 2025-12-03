@@ -95,8 +95,8 @@ const Sidebar: React.FC = () => {
                   <span className="text-base font-bold text-white">{userInitial}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">{userEmail.split('@')[0]}</p>
-                  <p className="text-xs text-gray-400 truncate">{userEmail}</p>
+                  <p className="text-xs font-medium text-white truncate">{userEmail.split('@')[0]}</p>
+                  <p className="text-[10px] text-gray-400 truncate">{userEmail}</p>
                 </div>
               </div>
             </div>
