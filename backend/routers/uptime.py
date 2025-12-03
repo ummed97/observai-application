@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 from monitors.uptime_monitor import UptimeMonitor
-from routers.auth import get_current_user
+from auth.dependencies import get_current_user
 
 router = APIRouter(
     prefix="/api/v1/uptime",

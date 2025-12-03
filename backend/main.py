@@ -61,7 +61,6 @@ websocket_connections: List[WebSocket] = []
 
 # Security
 
-security = HTTPBearer()
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
 ALGORITHM = "HS256"
 
@@ -186,10 +185,7 @@ class RemediationAction(BaseModel):
     estimated_impact: str
 
 # ===== AUTHENTICATION =====
-
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Validate JWT token"""
-    return validate_token(credentials.credentials)
+from auth.dependencies import get_current_user, security
 
 # ===== DATABASE =====
 
