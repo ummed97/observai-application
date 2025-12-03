@@ -13,7 +13,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return (
         <div className="flex h-screen bg-gray-50">
             {/* Desktop Sidebar */}
-            <div className="hidden md:block">
+            <div className="hidden md:block h-full">
                 <Sidebar />
             </div>
 

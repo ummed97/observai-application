@@ -360,7 +360,7 @@ export const NLQuery: React.FC = () => {
 
           {/* Input Area */}
           <div className="bg-white border-t border-gray-200 p-4">
-            <div className="max-w-4xl mx-auto">
+            <div className="w-full px-4">
               <form onSubmit={handleSubmit} className="relative">
                 <input
                   type="text"
@@ -378,8 +378,26 @@ export const NLQuery: React.FC = () => {
                   <Send className="w-5 h-5" />
                 </button>
               </form>
-              <div className="mt-2 text-xs text-gray-500 text-center hidden sm:block">
-                Try: "Show CPU usage for last 24h" or "Predict storage growth"
+              <div className="mt-4 hidden sm:block">
+                <p className="text-sm text-gray-500 mb-3">Try asking:</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {[
+                    "Why did API latency increase in the last hour?",
+                    "Show me services with high CPU usage",
+                    "What incidents occurred this week?",
+                    "Predict storage capacity for next 7 days",
+                    "Which services are consuming most cost?",
+                    "Show dependencies for payment-service"
+                  ].map((query, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleExampleClick(query)}
+                      className="text-left px-4 py-2 text-sm text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors"
+                    >
+                      {query}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
