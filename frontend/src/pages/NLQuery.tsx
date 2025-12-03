@@ -20,6 +20,7 @@ interface Message {
 
 interface ChatHistoryItem {
   id: string;
+  session_id?: string;
   query: string;
   response: string;
   timestamp: string;
