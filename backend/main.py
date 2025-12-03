@@ -23,6 +23,7 @@ from sqlalchemy import select, and_, or_, func
 from pydantic import BaseModel, Field
 import jwt
 
+from auth.jwt_handler import validate_token
 from agents.orchestrator import AgentOrchestrator
 from data_ingestion.collector import DataCollector
 from data_ingestion.app_insights_collector import AppInsightsCollector
@@ -184,14 +185,7 @@ class RemediationAction(BaseModel):
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Validate JWT token"""
-    try:
-        token = credentials.credentials
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    return validate_token(credentials.credentials)
 
 # ===== DATABASE =====
 
