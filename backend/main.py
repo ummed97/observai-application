@@ -85,10 +85,14 @@ async def lifespan(app: FastAPI):
     data_collector = DataCollector()
     app_insights_collector = AppInsightsCollector()
     knowledge_graph = KnowledgeGraphEngine()
+    
+    # Store orchestrator in app state for routers
+    app.state.orchestrator = agent_orchestrator
 
     # Start background tasks
     asyncio.create_task(agent_orchestrator.start())
     asyncio.create_task(data_collector.start())
+    asyncio.create_task(uptime_service.start())
 
     logger.info("Platform started successfully")
 
@@ -194,8 +198,15 @@ async def get_db():
         yield session
 
 # ===== ROUTERS =====
-from routers import auth
+from routers import auth, uptime, security
+from monitors.uptime_monitor import UptimeMonitor
+
 app.include_router(auth.router)
+app.include_router(uptime.router)
+app.include_router(security.router)
+
+# Initialize Uptime Monitor
+uptime_service = UptimeMonitor()
 
 # ===== HEALTH CHECK =====
 

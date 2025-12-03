@@ -99,7 +99,7 @@ class SecurityAgent:
         except Exception as e:
             logger.error(f"Threat detection error: {e}")
         
-        return [self._alert_to_dict(t) for t in threats]
+        return [self.alert_to_dict(t) for t in threats]
 
     def _create_alert(self, type: str, severity: str, description: str, source: str, context: Dict[str, Any]) -> SecurityAlert:
         """Create and store a security alert"""
@@ -118,7 +118,11 @@ class SecurityAgent:
         logger.warning(f"Security Alert: {description}")
         return alert
 
-    def _alert_to_dict(self, alert: SecurityAlert) -> Dict[str, Any]:
+    def get_alerts(self) -> List[Dict[str, Any]]:
+        """Get all alerts as dictionaries"""
+        return [self.alert_to_dict(a) for a in self.alerts]
+
+    def alert_to_dict(self, alert: SecurityAlert) -> Dict[str, Any]:
         """Convert alert object to dictionary"""
         return {
             "id": alert.alert_id,

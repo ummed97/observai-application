@@ -27,37 +27,68 @@ class UptimeMonitor:
     Uptime Monitor Service
     Checks HTTP/HTTPS endpoints and TCP ports
     """
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(UptimeMonitor, cls).__new__(cls)
+            cls._instance.initialized = False
+        return cls._instance
     
     def __init__(self):
+        if self.initialized:
+            return
+            
         self.monitors = []
         self.results = {}  # monitor_id -> List[MonitorResult]
         self.running = False
+        self.initialized = True
         
-        # Mock initial monitors
-        self.add_monitor({
-            "id": "mon_1",
-            "name": "Main Website",
-            "type": "http",
-            "url": "https://google.com",
-            "interval": 60
-        })
-        self.add_monitor({
-            "id": "mon_2",
-            "name": "API Gateway",
-            "type": "port",
-            "host": "localhost",
-            "port": 8000,
-            "interval": 60
-        })
+        # Add some default monitors if empty
+        if not self.monitors:
+            self.add_monitor({
+                "id": "mon_1",
+                "name": "Main Website",
+                "type": "http",
+                "url": "https://google.com",
+                "interval": 60
+            })
 
     def add_monitor(self, monitor_config: Dict[str, Any]):
         """Add a new monitor"""
+        # Generate ID if not present
+        if "id" not in monitor_config:
+            monitor_config["id"] = f"mon_{int(time.time())}"
+            
         self.monitors.append(monitor_config)
         self.results[monitor_config["id"]] = []
         logger.info(f"Added monitor: {monitor_config['name']}")
+        return monitor_config
+
+    def remove_monitor(self, monitor_id: str):
+        """Remove a monitor by ID"""
+        self.monitors = [m for m in self.monitors if m["id"] != monitor_id]
+        if monitor_id in self.results:
+            del self.results[monitor_id]
+        logger.info(f"Removed monitor: {monitor_id}")
+
+    def get_monitors(self) -> List[Dict[str, Any]]:
+        """Get all monitor configurations"""
+        return self.monitors
+
+    def get_status(self) -> Dict[str, Any]:
+        """Get current status of all monitors"""
+        return {
+            "monitors": self.monitors,
+            "results": self.results,
+            "running": self.running
+        }
 
     async def start(self):
         """Start the monitoring loop"""
+        if self.running:
+            return
+            
         self.running = True
         asyncio.create_task(self._monitor_loop())
         logger.info("Uptime Monitor started")
