@@ -375,7 +375,7 @@ export const NLQuery: React.FC = () => {
                     <button
                       key={idx}
                       onClick={() => handleExampleClick(query)}
-                      className="text-left px-4 py-2 text-sm text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors"
+                      className="text-left px-4 py-2 text-sm text-gray-600 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg transition-colors shadow-sm"
                     >
                       {query}
                     </button>
