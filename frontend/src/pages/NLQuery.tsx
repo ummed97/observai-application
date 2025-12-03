@@ -3,10 +3,9 @@
  * ChatOps-style interface for querying observability data
  */
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Loader, AlertCircle, BarChart3, TrendingUp, Trash2, History } from 'lucide-react';
+import { Send, Loader, AlertCircle, BarChart3, TrendingUp, Trash2, History, X } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import Header from '../components/common/Header';
-import Sidebar from '../components/common/Sidebar';
+import Layout from '../components/common/Layout';
 
 interface Message {
   id: string;
@@ -279,123 +278,126 @@ export const NLQuery: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <div className="hidden md:block">
-        <Sidebar />
-      </div>
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
-        <div className="flex-1 flex overflow-hidden relative">
-          {/* Main Chat Area */}
-          <div className="flex-1 flex flex-col overflow-hidden w-full">
-            {/* Header */}
-            <div className="bg-white shadow-sm border-b border-gray-200 p-4">
-              <div className="max-w-4xl mx-auto flex items-center justify-between">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Natural Language Query</h1>
-                  <p className="text-gray-600 text-sm mt-1 hidden sm:block">Ask questions about your infrastructure in plain English</p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => {
-                      setMessages([{
-                        id: '1',
-                        type: 'assistant',
-                        content: 'Hello! I\'m your AI observability assistant. Ask me anything about your infrastructure, incidents, metrics, or predictions.',
-                        timestamp: new Date()
-                      }]);
-                      const newSessionId = Math.random().toString(36).substring(7);
-                      setSessionId(newSessionId);
-                      setShowHistory(false);
-                    }}
-                    className="flex items-center space-x-2 px-3 py-2 sm:px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                  >
-                    <span className="text-sm font-medium whitespace-nowrap">New Chat</span>
-                  </button>
-                  <button
-                    onClick={() => setShowHistory(!showHistory)}
-                    className="flex items-center space-x-2 px-3 py-2 sm:px-4 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                  >
-                    <History className="w-5 h-5" />
-                    <span className="text-sm font-medium hidden sm:inline">History</span>
-                  </button>
-                </div>
+    <Layout>
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Main Chat Area */}
+        <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${showHistory ? 'sm:mr-80' : 'mr-0'}`}>
+          {/* Header */}
+          <div className="bg-white shadow-sm border-b border-gray-200 p-4">
+            <div className="max-w-4xl mx-auto flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Natural Language Query</h1>
+                <p className="text-gray-600 text-sm mt-1 hidden sm:block">Ask questions about your infrastructure in plain English</p>
               </div>
-            </div>
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-6">
-              <div className="max-w-4xl mx-auto space-y-6">
-                {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[90%] sm:max-w-[80%] rounded-lg p-4 ${msg.type === 'user'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white border border-gray-200 shadow-sm'
-                        }`}
-                    >
-                      <div className="whitespace-pre-wrap text-sm sm:text-base">{msg.content}</div>
-                      {msg.visualizations && (
-                        <div className="mt-4 bg-gray-50 rounded p-2 sm:p-4 overflow-x-auto">
-                          {renderVisualization(msg.visualizations)}
-                        </div>
-                      )}
-                      <div
-                        className={`text-xs mt-2 ${msg.type === 'user' ? 'text-blue-100' : 'text-gray-400'
-                          }`}
-                      >
-                        {msg.timestamp.toLocaleTimeString()}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {loading && (
-                  <div className="flex justify-start">
-                    <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm flex items-center space-x-2">
-                      <Loader className="w-4 h-4 animate-spin text-blue-600" />
-                      <span className="text-gray-500 text-sm">Processing query...</span>
-                    </div>
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-            </div>
-
-            {/* Input Area */}
-            <div className="bg-white border-t border-gray-200 p-4">
-              <div className="max-w-4xl mx-auto">
-                <form onSubmit={handleSubmit} className="relative">
-                  <input
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder="Ask a question..."
-                    className="w-full pl-4 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
-                    disabled={loading}
-                  />
-                  <button
-                    type="submit"
-                    disabled={loading || !input.trim()}
-                    className="absolute right-2 top-2 p-1.5 text-gray-400 hover:text-blue-600 disabled:opacity-50 transition-colors"
-                  >
-                    <Send className="w-5 h-5" />
-                  </button>
-                </form>
-                <div className="mt-2 text-xs text-gray-500 text-center hidden sm:block">
-                  Try: "Show CPU usage for last 24h" or "Predict storage growth"
-                </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => {
+                    setMessages([{
+                      id: '1',
+                      type: 'assistant',
+                      content: 'Hello! I\'m your AI observability assistant. Ask me anything about your infrastructure, incidents, metrics, or predictions.',
+                      timestamp: new Date()
+                    }]);
+                    const newSessionId = Math.random().toString(36).substring(7);
+                    setSessionId(newSessionId);
+                    setShowHistory(false);
+                  }}
+                  className="flex items-center space-x-2 px-3 py-2 sm:px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                >
+                  <span className="text-sm font-medium whitespace-nowrap">New Chat</span>
+                </button>
+                <button
+                  onClick={() => setShowHistory(!showHistory)}
+                  className="flex items-center space-x-2 px-3 py-2 sm:px-4 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                >
+                  <History className="w-5 h-5" />
+                  <span className="text-sm font-medium hidden sm:inline">History</span>
+                </button>
               </div>
             </div>
           </div>
 
-          {/* History Sidebar - Responsive Overlay */}
-          {showHistory && (
-            <div className="absolute inset-y-0 right-0 w-full sm:w-80 bg-white shadow-xl border-l border-gray-200 transform transition-transform duration-300 ease-in-out z-20 flex flex-col">
-              <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-                <h2 className="font-semibold text-gray-900">Chat History</h2>
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            <div className="max-w-4xl mx-auto space-y-6">
+              {messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[90%] sm:max-w-[80%] rounded-lg p-4 ${msg.type === 'user'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white border border-gray-200 shadow-sm'
+                      }`}
+                  >
+                    <div className="whitespace-pre-wrap text-sm sm:text-base">{msg.content}</div>
+                    {msg.visualizations && (
+                      <div className="mt-4 bg-gray-50 rounded p-2 sm:p-4 overflow-x-auto">
+                        {renderVisualization(msg.visualizations)}
+                      </div>
+                    )}
+                    <div
+                      className={`text-xs mt-2 ${msg.type === 'user' ? 'text-blue-100' : 'text-gray-400'
+                        }`}
+                    >
+                      {msg.timestamp.toLocaleTimeString()}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {loading && (
+                <div className="flex justify-start">
+                  <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm flex items-center space-x-2">
+                    <Loader className="w-4 h-4 animate-spin text-blue-600" />
+                    <span className="text-gray-500 text-sm">Processing query...</span>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          </div>
+
+          {/* Input Area */}
+          <div className="bg-white border-t border-gray-200 p-4">
+            <div className="max-w-4xl mx-auto">
+              <form onSubmit={handleSubmit} className="relative">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Ask a question..."
+                  className="w-full pl-4 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+                  disabled={loading}
+                />
+                <button
+                  type="submit"
+                  disabled={loading || !input.trim()}
+                  className="absolute right-2 top-2 p-1.5 text-gray-400 hover:text-blue-600 disabled:opacity-50 transition-colors"
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              </form>
+              <div className="mt-2 text-xs text-gray-500 text-center hidden sm:block">
+                Try: "Show CPU usage for last 24h" or "Predict storage growth"
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* History Sidebar - Fixed on desktop, overlay on mobile */}
+        {showHistory && (
+          <div className="fixed sm:absolute inset-y-0 right-0 w-full sm:w-80 bg-white shadow-xl border-l border-gray-200 z-20 flex flex-col">
+            <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+              <h2 className="font-semibold text-gray-900">Chat History</h2>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setShowHistory(false)}
+                  className="p-1 hover:bg-gray-200 rounded transition-colors"
+                  title="Close"
+                >
+                  <X className="w-5 h-5 text-gray-600" />
+                </button>
                 <button
                   onClick={clearChatHistory}
                   className="text-red-600 hover:text-red-700 text-sm flex items-center space-x-1 px-2 py-1 rounded hover:bg-red-50"
@@ -404,77 +406,78 @@ export const NLQuery: React.FC = () => {
                   <span>Clear All</span>
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto p-4">
-                {sessions.length === 0 ? (
-                  <div className="text-center text-gray-500 text-sm mt-8">
-                    <History className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>No chat history yet</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {sessions.map(([sessId, items]) => {
-                      // Sort items in this session by timestamp ASC for display in chat
-                      const sortedItems = [...items].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-                      // Use the first query as the session title
-                      const firstQuery = sortedItems[0]?.query || 'New Chat';
-                      const lastActive = sortedItems[sortedItems.length - 1]?.timestamp;
-
-                      return (
-                        <button
-                          key={sessId}
-                          onClick={() => {
-                            // Reconstruct the full conversation for this session
-                            const sessionMessages: Message[] = [];
-                            // Add initial greeting if desired, or just start with history
-                            // sessionMessages.push(initialGreeting); 
-
-                            sortedItems.forEach(item => {
-                              sessionMessages.push({
-                                id: `query-${item.id}`,
-                                type: 'user',
-                                content: item.query,
-                                timestamp: new Date(item.timestamp.endsWith('Z') ? item.timestamp : `${item.timestamp}Z`)
-                              });
-                              sessionMessages.push({
-                                id: `response-${item.id}`,
-                                type: 'assistant',
-                                content: item.response,
-                                timestamp: new Date(item.timestamp.endsWith('Z') ? item.timestamp : `${item.timestamp}Z`)
-                              });
-                            });
-
-                            setMessages(sessionMessages);
-                            setSessionId(sessId);
-                            // On mobile, close sidebar after selection
-                            if (window.innerWidth < 640) {
-                              setShowHistory(false);
-                            }
-                          }}
-                          className={`w-full text-left rounded-lg p-3 border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${sessionId === sessId
-                            ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-500'
-                            : 'bg-gray-50 hover:bg-gray-100 border-gray-200'
-                            }`}
-                        >
-                          <p className="text-sm font-medium text-gray-900 mb-1 line-clamp-2">{firstQuery}</p>
-                          <p className="text-xs text-gray-500">
-                            {formatTime(lastActive)}
-                          </p>
-                          <div className="mt-1 flex items-center space-x-1">
-                            <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">
-                              {items.length} prompts
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
             </div>
-          )}
-        </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {sessions.length === 0 ? (
+                <div className="text-center text-gray-500 text-sm mt-8">
+                  <History className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p>No chat history yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {sessions.map(([sessId, items]) => {
+                    // Sort items in this session by timestamp ASC for display in chat
+                    const sortedItems = [...items].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+                    // Use the first query as the session title
+                    const firstQuery = sortedItems[0]?.query || 'New Chat';
+                    const lastActive = sortedItems[sortedItems.length - 1]?.timestamp;
+
+                    return (
+                      <button
+                        key={sessId}
+                        onClick={() => {
+                          // Reconstruct the full conversation for this session
+                          const sessionMessages: Message[] = [];
+                          // Add initial greeting if desired, or just start with history
+                          // sessionMessages.push(initialGreeting); 
+
+                          sortedItems.forEach(item => {
+                            sessionMessages.push({
+                              id: `query-${item.id}`,
+                              type: 'user',
+                              content: item.query,
+                              timestamp: new Date(item.timestamp.endsWith('Z') ? item.timestamp : `${item.timestamp}Z`)
+                            });
+                            sessionMessages.push({
+                              id: `response-${item.id}`,
+                              type: 'assistant',
+                              content: item.response,
+                              timestamp: new Date(item.timestamp.endsWith('Z') ? item.timestamp : `${item.timestamp}Z`)
+                            });
+                          });
+
+                          setMessages(sessionMessages);
+                          setSessionId(sessId);
+                          // On mobile, close sidebar after selection
+                          if (window.innerWidth < 640) {
+                            setShowHistory(false);
+                          }
+                        }}
+                        className={`w-full text-left rounded-lg p-3 border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${sessionId === sessId
+                          ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-500'
+                          : 'bg-gray-50 hover:bg-gray-100 border-gray-200'
+                          }`}
+                      >
+                        <p className="text-sm font-medium text-gray-900 mb-1 line-clamp-2">{firstQuery}</p>
+                        <p className="text-xs text-gray-500">
+                          {formatTime(lastActive)}
+                        </p>
+                        <div className="mt-1 flex items-center space-x-1">
+                          <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">
+                            {items.length} prompts
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
+    </Layout >
   );
 };
 
