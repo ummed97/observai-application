@@ -88,7 +88,7 @@ const Incidents: React.FC = () => {
   }
 
   return (
-  return (
+
     <Layout>
       <div className="flex-1 overflow-auto p-6">
         {/* Header */}
@@ -188,7 +188,7 @@ const Incidents: React.FC = () => {
       </div>
     </Layout>
   );
-  );
+
 };
 
 export default Incidents;

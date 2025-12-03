@@ -190,7 +190,7 @@ const CostAnalytics: React.FC = () => {
   const savings = totalCost > 0 ? ((totalWaste / totalCost) * 100).toFixed(1) : '0.0';
 
   return (
-  return (
+
     <Layout>
       <div className="flex-1 overflow-auto p-6">
         {/* Header & Controls */}
