@@ -18,6 +18,7 @@ security = HTTPBearer()
 
 class ChatMessage(BaseModel):
     id: str
+    session_id: str | None = None
     query: str
     response: str
     timestamp: datetime
@@ -48,6 +49,7 @@ async def get_chat_history(
         return [
             ChatMessage(
                 id=chat.id,
+                session_id=chat.session_id,
                 query=chat.query,
                 response=chat.response,
                 timestamp=chat.timestamp
