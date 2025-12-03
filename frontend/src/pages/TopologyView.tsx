@@ -5,7 +5,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Network, Database, Server, Cloud, AlertCircle, CheckCircle,
-  Cpu, HardDrive, Shield, Globe, Box, Zap, Layout, ZoomIn, ZoomOut, Maximize
+  Cpu, HardDrive, Shield, Globe, Box, Zap, Layout as LayoutIcon, ZoomIn, ZoomOut, Maximize
 } from 'lucide-react';
 import Layout from '../components/common/Layout';
 
