@@ -51,6 +51,7 @@ export const NLQuery: React.FC = () => {
   const [userEmail, setUserEmail] = useState<string>('');
   const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [sessionId, setSessionId] = useState<string>(Math.random().toString(36).substring(7));
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -96,6 +97,11 @@ export const NLQuery: React.FC = () => {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    sendQuery();
   };
 
   const sendQuery = async () => {

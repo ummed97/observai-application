@@ -344,7 +344,7 @@ export const TopologyView: React.FC = () => {
   }
 
   return (
-    <Layout noScroll={true}>
+    <Layout>
       <div className="flex-1 relative overflow-hidden bg-slate-50 h-full w-full">
         {/* Toolbar */}
         <div className="absolute top-4 left-4 z-10 flex flex-col gap-2 bg-white p-2 rounded-lg shadow-md border border-gray-200">
