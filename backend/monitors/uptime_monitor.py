@@ -137,43 +137,52 @@ class UptimeMonitor:
         return status, round(duration, 2)
 
     async def _send_alert(self, monitor, user, new_status: str):
-        """Send email alert on status change"""
+        """Send email alert on status change
+        - 'non-working' email: Only when site goes down (up→down)
+        - 'working' email: Only when site recovers (down→up)
+        """
         if not self.smtp_user or not self.smtp_password:
             logger.warning("SMTP not configured, skipping email alert")
-            logger.info(f"ALERT: Monitor '{monitor.name}' ({monitor.url}) is now {new_status.upper()}")
+            if new_status == "up":
+                logger.info(f"✅ WORKING: Monitor '{monitor.name}' ({monitor.url}) is back UP")
+            else:
+                logger.info(f"🚨 NON-WORKING: Monitor '{monitor.name}' ({monitor.url}) is DOWN")
             return
         
         try:
-            subject = f"🚨 Alert: {monitor.name} is {new_status.upper()}"
-            
+            # Determine email type based on new status
             if new_status == "up":
-                subject = f"✅ Resolved: {monitor.name} is UP"
+                # Site recovered (down → up)
+                subject = f"✅ WORKING: {monitor.name} is back online"
                 body = f"""
 Hello {user.full_name},
 
-Good news! Your monitored service is back online.
+Good news! Your monitored service has recovered and is now working.
 
 Monitor: {monitor.name}
 URL: {monitor.url}
-Status: UP
+Status: WORKING (UP)
 Time: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC
 
-Your service is now responding normally.
+Your service is now responding normally with HTTP 200 OK.
 
 Best regards,
 ObservAI Monitoring System
 """
             else:
+                # Site went down (up → down or first check)
+                subject = f"🚨 NON-WORKING: {monitor.name} is down"
                 body = f"""
 Hello {user.full_name},
 
-Your monitored service is currently down.
+Alert! Your monitored service is currently not working.
 
 Monitor: {monitor.name}
 URL: {monitor.url}
-Status: DOWN
+Status: NON-WORKING (DOWN)
 Time: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC
 
+The service is not responding or returning an error status code.
 Please investigate the issue as soon as possible.
 
 Best regards,
@@ -192,7 +201,7 @@ ObservAI Monitoring System
                 server.login(self.smtp_user, self.smtp_password)
                 server.send_message(msg)
             
-            logger.info(f"Alert email sent to {user.email} for monitor {monitor.name}")
+            logger.info(f"Alert email sent to {user.email} for monitor {monitor.name} (status: {new_status})")
             
         except Exception as e:
             logger.error(f"Failed to send alert email: {e}")

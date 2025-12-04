@@ -28,7 +28,10 @@ const Uptime: React.FC = () => {
     // Fetch monitors
     const fetchMonitors = async () => {
         try {
-            const response = await fetch('http://localhost:8000/api/v1/monitors', {
+            const apiUrl = window.location.hostname === 'localhost'
+                ? 'http://localhost:8000'
+                : `http://${window.location.hostname}:8000`;
+            const response = await fetch(`${apiUrl}/api/v1/monitors`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
@@ -54,7 +57,10 @@ const Uptime: React.FC = () => {
     // Add monitor
     const handleAddMonitor = async () => {
         try {
-            const response = await fetch('http://localhost:8000/api/v1/monitors', {
+            const apiUrl = window.location.hostname === 'localhost'
+                ? 'http://localhost:8000'
+                : `http://${window.location.hostname}:8000`;
+            const response = await fetch(`${apiUrl}/api/v1/monitors`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -78,7 +84,10 @@ const Uptime: React.FC = () => {
         if (!confirm('Are you sure you want to delete this monitor?')) return;
 
         try {
-            const response = await fetch(`http://localhost:8000/api/v1/monitors/${id}`, {
+            const apiUrl = window.location.hostname === 'localhost'
+                ? 'http://localhost:8000'
+                : `http://${window.location.hostname}:8000`;
+            const response = await fetch(`${apiUrl}/api/v1/monitors/${id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
