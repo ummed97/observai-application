@@ -90,7 +90,7 @@ const Uptime: React.FC = () => {
             const response = await fetch(`${apiUrl}/api/v1/monitors/${id}`, {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
                 }
             });
 
