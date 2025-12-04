@@ -4,6 +4,7 @@ Creates all tables defined in SQLAlchemy models and init.sql
 """
 import asyncio
 import os
+from pathlib import Path
 from sqlalchemy import text
 from models.database import Base, engine
 from dotenv import load_dotenv
@@ -11,33 +12,49 @@ from dotenv import load_dotenv
 load_dotenv()
 
 async def init_db():
-    """Create all database tables"""
+    """Initialize database schema and seed data"""
     print("Initializing database...")
     
+    # TRANSACTION 1: Create SQLAlchemy tables
+    # This runs separately so it won't rollback if init.sql fails
     async with engine.begin() as conn:
-        # 1. Create SQLAlchemy tables
         print("Creating SQLAlchemy tables...")
         await conn.run_sync(Base.metadata.create_all)
-        
-        # 2. Execute raw SQL from init.sql
-        print("Executing init.sql...")
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        init_sql_path = os.path.join(current_dir, 'init.sql')
-        
-        if os.path.exists(init_sql_path):
-            with open(init_sql_path, 'r') as f:
-                sql_content = f.read()
-                statements = sql_content.split(';')
-                for statement in statements:
-                    if statement.strip():
+        print("SQLAlchemy tables created successfully")
+    
+    # TRANSACTION 2: Execute init.sql (seed data and additional setup)
+    # If this fails, at least the tables from Transaction 1 are preserved
+    try:
+        async with engine.begin() as conn:
+            print("Executing init.sql...")
+            init_sql_path = Path(__file__).parent / "init.sql"
+            
+            if init_sql_path.exists():
+                with open(init_sql_path, 'r') as f:
+                    sql_content = f.read()
+                
+                # Split by semicolons and execute each statement separately
+                # This prevents one error from rolling back everything
+                statements = [s.strip() for s in sql_content.split(';') if s.strip()]
+                
+                for i, statement in enumerate(statements):
+                    if statement and not statement.startswith('--'):
                         try:
                             await conn.execute(text(statement))
                         except Exception as e:
-                            print(f"Warning executing statement: {e}")
-        else:
-            print("init.sql not found!")
-
-        # 3. Explicitly create chat_history table (fallback)
+                            print(f"Warning executing statement {i+1}: {e}")
+                            # Continue with next statement instead of failing completely
+                            continue
+                
+                print("init.sql executed (with warnings for unsupported features)")
+            else:
+                print("Warning: init.sql not found, skipping seed data")
+    except Exception as e:
+        print(f"Warning: init.sql execution had errors: {e}")
+        print("Tables are still created, continuing...")
+    
+    # TRANSACTION 3: Ensure chat_history table exists (fallback)
+    async with engine.begin() as conn:
         print("Ensuring chat_history table exists...")
         await conn.execute(text("""
             CREATE TABLE IF NOT EXISTS chat_history (
