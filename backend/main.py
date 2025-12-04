@@ -194,12 +194,13 @@ async def get_db():
         yield session
 
 # ===== ROUTERS =====
-from routers import auth, uptime, security
+from routers import auth, uptime, security, monitors
 from monitors.uptime_monitor import UptimeMonitor
 
 app.include_router(auth.router)
 app.include_router(uptime.router)
 app.include_router(security.router)
+app.include_router(monitors.router)
 
 # Initialize Uptime Monitor
 uptime_service = UptimeMonitor()

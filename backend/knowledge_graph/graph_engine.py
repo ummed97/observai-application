@@ -147,10 +147,36 @@ class KnowledgeGraphEngine:
         }
         return type_mapping.get(azure_type, "service")
     
+    async def _get_nodes_from_postgres(self) -> List[Dict[str, Any]]:
+        """Fallback: Get topology nodes from PostgreSQL"""
+        try:
+            from models.database import AsyncSessionLocal, TopologyNode
+            from sqlalchemy import select
+            
+            async with AsyncSessionLocal() as session:
+                result = await session.execute(select(TopologyNode))
+                nodes = result.scalars().all()
+                
+                return [
+                    {
+                        "node_id": node.node_id,
+                        "name": node.name,
+                        "type": node.type,
+                        "status": node.status,
+                        "node_metadata": node.node_metadata,
+                        "dependencies": []
+                    }
+                    for node in nodes
+                ]
+        except Exception as e:
+            logger.error(f"Error fetching nodes from PostgreSQL: {e}")
+            return []
+
     async def get_all_nodes(self) -> List[Dict[str, Any]]:
-        """Get all topology nodes from Neo4j"""
+        """Get all topology nodes from Neo4j, fallback to PostgreSQL"""
         if not self.driver:
-            return self._get_mock_data()
+            logger.info("Neo4j not available, using PostgreSQL")
+            return await self._get_nodes_from_postgres()
 
         try:
             with self.driver.session() as session:
@@ -160,10 +186,17 @@ class KnowledgeGraphEngine:
                     RETURN n.id as node_id, n.name as name, n.type as type, n.status as status, n.resource_group as resource_group
                     """
                 )
-                return [dict(record) for record in result]
+                nodes = [dict(record) for record in result]
+                
+                # If Neo4j is empty, fallback to PostgreSQL
+                if not nodes:
+                    logger.info("Neo4j empty, falling back to PostgreSQL")
+                    return await self._get_nodes_from_postgres()
+                
+                return nodes
         except Exception as e:
             logger.error(f"Error fetching nodes from Neo4j: {e}")
-            return self._get_mock_data()
+            return await self._get_nodes_from_postgres()
 
     async def get_full_graph(self) -> Dict[str, Any]:
         """Get complete topology graph from Neo4j"""

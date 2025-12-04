@@ -1,21 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/common/Layout';
 import { Activity, Globe, Server, CheckCircle, XCircle, Clock, Plus, X, Trash2 } from 'lucide-react';
-import { LineChart, Line, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface Monitor {
     id: string;
     name: string;
-    type: 'http' | 'port';
-    url?: string;
-    host?: string;
-    port?: number;
-    interval: number;
-    status?: 'up' | 'down';
-    uptime?: string;
+    url: string;
+    monitor_type: 'http' | 'ping' | 'port';
+    interval_seconds: number;
+    is_active: boolean;
+    last_status?: 'up' | 'down';
+    last_checked?: string;
     response_time?: number;
-    last_check?: string;
-    history?: { time: string; value: number }[];
 }
 
 const Uptime: React.FC = () => {
@@ -24,51 +20,25 @@ const Uptime: React.FC = () => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [newMonitor, setNewMonitor] = useState({
         name: '',
-        type: 'http',
         url: '',
-        host: '',
-        port: '',
-        interval: 60
+        monitor_type: 'http',
+        interval_seconds: 600
     });
 
     // Fetch monitors
     const fetchMonitors = async () => {
         try {
-            const response = await fetch('http://localhost:8000/api/v1/uptime/monitors', {
+            const response = await fetch('http://localhost:8000/api/v1/monitors', {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
             });
-            const data = await response.json();
-            // Backend returns { monitors: [], results: {} }
-            // We need to merge them to match the UI expectation
-            // For now, let's assume the backend returns a list of monitors with status merged
-            // If not, we might need to adjust.
-            // Based on my UptimeMonitor.get_status implementation (which I haven't fully seen but assumed),
-            // let's assume it returns { monitors: [...], results: {...} }
-
-            // Actually, I didn't implement get_status in UptimeMonitor in the previous turn.
-            // I implemented add_monitor, remove_monitor, start, stop.
-            // I need to check if get_status exists or implement it.
-            // Wait, I used `uptime_monitor.get_status()` in routers/uptime.py.
-            // I need to ensure `get_status` exists in `UptimeMonitor`.
-
-            // Assuming it returns a structure we can use. If not, I'll fix the backend.
-            // For now, let's assume data.monitors is the list.
-
-            if (data.monitors) {
-                const formattedMonitors = data.monitors.map((m: any) => ({
-                    ...m,
-                    status: 'up', // Default for now until we have real status logic
-                    uptime: '100%',
-                    response_time: 0,
-                    last_check: 'Now',
-                    history: []
-                }));
-                setMonitors(formattedMonitors);
+            if (response.ok) {
+                const data = await response.json();
+                setMonitors(data);
             }
         } catch (error) {
-            console.error("Failed to fetch monitors", error);
+            console.error('Failed to fetch monitors:', error);
         } finally {
             setLoading(false);
         }
@@ -76,201 +46,232 @@ const Uptime: React.FC = () => {
 
     useEffect(() => {
         fetchMonitors();
+        // Refresh every 30 seconds
         const interval = setInterval(fetchMonitors, 30000);
         return () => clearInterval(interval);
     }, []);
 
-    const handleAddMonitor = async (e: React.FormEvent) => {
-        e.preventDefault();
+    // Add monitor
+    const handleAddMonitor = async () => {
         try {
-            const payload = {
-                ...newMonitor,
-                port: newMonitor.port ? parseInt(newMonitor.port) : undefined
-            };
-
-            await fetch('http://localhost:8000/api/v1/uptime/monitors', {
+            const response = await fetch('http://localhost:8000/api/v1/monitors', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(newMonitor)
             });
 
-            setShowAddModal(false);
-            fetchMonitors();
-            setNewMonitor({ name: '', type: 'http', url: '', host: '', port: '', interval: 60 });
+            if (response.ok) {
+                setShowAddModal(false);
+                setNewMonitor({ name: '', url: '', monitor_type: 'http', interval_seconds: 600 });
+                fetchMonitors();
+            }
         } catch (error) {
-            console.error("Failed to add monitor", error);
+            console.error('Failed to add monitor:', error);
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this monitor?")) return;
+    // Delete monitor
+    const handleDeleteMonitor = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this monitor?')) return;
+
         try {
-            await fetch(`http://localhost:8000/api/v1/uptime/monitors/${id}`, {
+            const response = await fetch(`http://localhost:8000/api/v1/monitors/${id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
             });
-            fetchMonitors();
+
+            if (response.ok) {
+                fetchMonitors();
+            }
         } catch (error) {
-            console.error("Failed to delete monitor", error);
+            console.error('Failed to delete monitor:', error);
         }
+    };
+
+    const getStatusColor = (status?: string) => {
+        if (!status) return 'text-gray-400';
+        return status === 'up' ? 'text-green-400' : 'text-red-400';
+    };
+
+    const getStatusIcon = (status?: string) => {
+        if (!status) return <Clock className="w-5 h-5 text-gray-400" />;
+        return status === 'up'
+            ? <CheckCircle className="w-5 h-5 text-green-400" />
+            : <XCircle className="w-5 h-5 text-red-400" />;
     };
 
     return (
         <Layout>
-            <div className="p-6 space-y-6">
-                <div className="flex justify-between items-center">
+            <div className="p-6">
+                {/* Header */}
+                <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Uptime Monitor</h1>
-                        <p className="text-gray-500 dark:text-gray-400">Monitor availability and performance of your services</p>
+                        <h1 className="text-3xl font-bold text-white mb-2">Uptime Monitoring</h1>
+                        <p className="text-gray-400">Monitor your websites and APIs</p>
                     </div>
                     <button
                         onClick={() => setShowAddModal(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
                     >
-                        <Plus size={20} />
+                        <Plus className="w-5 h-5" />
                         Add Monitor
                     </button>
                 </div>
 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700">
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Monitors</p>
-                                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-2">{monitors.length}</h3>
-                            </div>
-                            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                                <Activity className="w-6 h-6 text-green-600 dark:text-green-400" />
-                            </div>
-                        </div>
+                {/* Monitors Grid */}
+                {loading ? (
+                    <div className="text-center text-gray-400 py-12">Loading monitors...</div>
+                ) : monitors.length === 0 ? (
+                    <div className="text-center text-gray-400 py-12">
+                        <Activity className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                        <p className="text-xl mb-2">No monitors configured</p>
+                        <p className="text-sm">Click "Add Monitor" to start monitoring your services</p>
                     </div>
-                </div>
-
-                {/* Monitors List */}
-                <div className="space-y-4">
-                    {monitors.map((monitor) => (
-                        <div key={monitor.id} className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700">
-                            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                                <div className="flex items-start space-x-4 min-w-[200px]">
-                                    <div className={`p-3 rounded-lg ${monitor.status === 'down' ? 'bg-red-100' : 'bg-green-100'}`}>
-                                        {monitor.type === 'http' ? <Globe className="w-6 h-6" /> : <Server className="w-6 h-6" />}
-                                    </div>
-                                    <div>
-                                        <div className="flex items-center space-x-2">
-                                            <h3 className="font-semibold text-gray-900 dark:text-white">{monitor.name}</h3>
-                                            <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${monitor.status === 'up' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                                {monitor.status?.toUpperCase() || 'UNKNOWN'}
-                                            </span>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {monitors.map((monitor) => (
+                            <div
+                                key={monitor.id}
+                                className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg p-6 hover:border-gray-600 transition-colors"
+                            >
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="flex items-center gap-3">
+                                        {getStatusIcon(monitor.last_status)}
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-white">{monitor.name}</h3>
+                                            <p className="text-sm text-gray-400">{monitor.monitor_type.toUpperCase()}</p>
                                         </div>
-                                        <p className="text-sm text-gray-500">{monitor.url || `${monitor.host}:${monitor.port}`}</p>
                                     </div>
-                                </div>
-
-                                <div className="flex items-center space-x-8">
-                                    <div>
-                                        <p className="text-xs text-gray-500">Uptime (24h)</p>
-                                        <p className="font-semibold text-gray-900 dark:text-white">{monitor.uptime || 'N/A'}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-gray-500">Response Time</p>
-                                        <p className="font-semibold text-gray-900 dark:text-white">{monitor.response_time || 0}ms</p>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-4">
-                                    <button onClick={() => handleDelete(monitor.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
-                                        <Trash2 size={18} />
+                                    <button
+                                        onClick={() => handleDeleteMonitor(monitor.id)}
+                                        className="text-gray-400 hover:text-red-400 transition-colors"
+                                    >
+                                        <Trash2 className="w-5 h-5" />
                                     </button>
                                 </div>
-                            </div>
-                        </div>
-                    ))}
 
-                    {monitors.length === 0 && !loading && (
-                        <div className="text-center py-10 text-gray-500">No monitors found. Add one to get started.</div>
-                    )}
-                </div>
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-400">URL:</span>
+                                        <span className="text-white truncate ml-2 max-w-[200px]" title={monitor.url}>
+                                            {monitor.url}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-400">Status:</span>
+                                        <span className={getStatusColor(monitor.last_status)}>
+                                            {monitor.last_status?.toUpperCase() || 'PENDING'}
+                                        </span>
+                                    </div>
+                                    {monitor.response_time && (
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-400">Response Time:</span>
+                                            <span className="text-white">{monitor.response_time.toFixed(0)}ms</span>
+                                        </div>
+                                    )}
+                                    {monitor.last_checked && (
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-400">Last Check:</span>
+                                            <span className="text-white">
+                                                {new Date(monitor.last_checked).toLocaleTimeString()}
+                                            </span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-400">Check Interval:</span>
+                                        <span className="text-white">{monitor.interval_seconds / 60} min</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
 
                 {/* Add Monitor Modal */}
                 {showAddModal && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl w-full max-w-md">
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 w-full max-w-md">
                             <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-xl font-bold dark:text-white">Add New Monitor</h2>
-                                <button onClick={() => setShowAddModal(false)} className="text-gray-500 hover:text-gray-700"><X /></button>
+                                <h2 className="text-xl font-bold text-white">Add Monitor</h2>
+                                <button
+                                    onClick={() => setShowAddModal(false)}
+                                    className="text-gray-400 hover:text-white"
+                                >
+                                    <X className="w-6 h-6" />
+                                </button>
                             </div>
-                            <form onSubmit={handleAddMonitor} className="space-y-4">
+
+                            <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium mb-1 dark:text-gray-300">Name</label>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                                        Monitor Name
+                                    </label>
                                     <input
                                         type="text"
-                                        required
-                                        className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                         value={newMonitor.name}
-                                        onChange={e => setNewMonitor({ ...newMonitor, name: e.target.value })}
+                                        onChange={(e) => setNewMonitor({ ...newMonitor, name: e.target.value })}
+                                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+                                        placeholder="My Website"
                                     />
                                 </div>
+
                                 <div>
-                                    <label className="block text-sm font-medium mb-1 dark:text-gray-300">Type</label>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                                        URL
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={newMonitor.url}
+                                        onChange={(e) => setNewMonitor({ ...newMonitor, url: e.target.value })}
+                                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+                                        placeholder="https://example.com"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                                        Monitor Type
+                                    </label>
                                     <select
-                                        className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                        value={newMonitor.type}
-                                        onChange={e => setNewMonitor({ ...newMonitor, type: e.target.value })}
+                                        value={newMonitor.monitor_type}
+                                        onChange={(e) => setNewMonitor({ ...newMonitor, monitor_type: e.target.value as any })}
+                                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
                                     >
-                                        <option value="http">HTTP(s) Website</option>
-                                        <option value="port">TCP Port</option>
+                                        <option value="http">HTTP/HTTPS</option>
+                                        <option value="ping">Ping</option>
+                                        <option value="port">Port</option>
                                     </select>
                                 </div>
 
-                                {newMonitor.type === 'http' ? (
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1 dark:text-gray-300">URL</label>
-                                        <input
-                                            type="url"
-                                            required
-                                            placeholder="https://example.com"
-                                            className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                            value={newMonitor.url}
-                                            onChange={e => setNewMonitor({ ...newMonitor, url: e.target.value })}
-                                        />
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium mb-1 dark:text-gray-300">Host</label>
-                                            <input
-                                                type="text"
-                                                required
-                                                placeholder="localhost"
-                                                className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                                value={newMonitor.host}
-                                                onChange={e => setNewMonitor({ ...newMonitor, host: e.target.value })}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium mb-1 dark:text-gray-300">Port</label>
-                                            <input
-                                                type="number"
-                                                required
-                                                placeholder="80"
-                                                className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                                value={newMonitor.port}
-                                                onChange={e => setNewMonitor({ ...newMonitor, port: e.target.value })}
-                                            />
-                                        </div>
-                                    </div>
-                                )}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                                        Check Interval (minutes)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={newMonitor.interval_seconds / 60}
+                                        onChange={(e) => setNewMonitor({
+                                            ...newMonitor,
+                                            interval_seconds: parseInt(e.target.value) * 60
+                                        })}
+                                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+                                        min="1"
+                                    />
+                                </div>
 
-                                <button type="submit" className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                                    Create Monitor
+                                <button
+                                    onClick={handleAddMonitor}
+                                    disabled={!newMonitor.name || !newMonitor.url}
+                                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors"
+                                >
+                                    Add Monitor
                                 </button>
-                            </form>
+                            </div>
                         </div>
                     </div>
                 )}

@@ -200,6 +200,24 @@ class AlertRule(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+class Monitor(Base):
+    """Uptime monitoring targets"""
+    __tablename__ = "monitors"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey('users.id'), nullable=False, index=True)
+    name = Column(String, nullable=False)
+    url = Column(String, nullable=False)
+    monitor_type = Column(String, nullable=False, default='http')  # http, ping, port
+    interval_seconds = Column(Integer, default=600)  # 10 minutes
+    is_active = Column(Boolean, default=True)
+    last_status = Column(String)  # up, down
+    last_checked = Column(DateTime)
+    response_time = Column(Float)  # milliseconds
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class AuditLog(Base):
     """Audit trail for all actions"""
     __tablename__ = "audit_logs"

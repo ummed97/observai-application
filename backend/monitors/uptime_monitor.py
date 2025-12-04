@@ -1,31 +1,25 @@
 """
-Uptime Monitor - Website & API Monitoring
-Monitors availability, response time, and SSL status
+Uptime Monitor - Website & API Monitoring with Email Alerts
+Monitors availability, response time, and sends email alerts on status changes
 """
 import asyncio
 import logging
 import aiohttp
 import time
-import socket
+import smtplib
+import os
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from typing import Dict, List, Any, Optional
-from datetime import datetime
-from dataclasses import dataclass
+from datetime import datetime, timedelta
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
-
-@dataclass
-class MonitorResult:
-    monitor_id: str
-    timestamp: datetime
-    status: str  # UP, DOWN
-    response_time_ms: float
-    status_code: Optional[int] = None
-    error: Optional[str] = None
 
 class UptimeMonitor:
     """
     Uptime Monitor Service
-    Checks HTTP/HTTPS endpoints and TCP ports
+    Checks HTTP/HTTPS endpoints from database and sends email alerts
     """
     _instance = None
 
@@ -39,50 +33,15 @@ class UptimeMonitor:
         if self.initialized:
             return
             
-        self.monitors = []
-        self.results = {}  # monitor_id -> List[MonitorResult]
         self.running = False
         self.initialized = True
+        self.smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
+        self.smtp_port = int(os.getenv("SMTP_PORT", "587"))
+        self.smtp_user = os.getenv("SMTP_USER", "")
+        self.smtp_password = os.getenv("SMTP_PASSWORD", "")
+        self.from_email = os.getenv("FROM_EMAIL", self.smtp_user)
         
-        # Add some default monitors if empty
-        if not self.monitors:
-            self.add_monitor({
-                "id": "mon_1",
-                "name": "Main Website",
-                "type": "http",
-                "url": "https://google.com",
-                "interval": 60
-            })
-
-    def add_monitor(self, monitor_config: Dict[str, Any]):
-        """Add a new monitor"""
-        # Generate ID if not present
-        if "id" not in monitor_config:
-            monitor_config["id"] = f"mon_{int(time.time())}"
-            
-        self.monitors.append(monitor_config)
-        self.results[monitor_config["id"]] = []
-        logger.info(f"Added monitor: {monitor_config['name']}")
-        return monitor_config
-
-    def remove_monitor(self, monitor_id: str):
-        """Remove a monitor by ID"""
-        self.monitors = [m for m in self.monitors if m["id"] != monitor_id]
-        if monitor_id in self.results:
-            del self.results[monitor_id]
-        logger.info(f"Removed monitor: {monitor_id}")
-
-    def get_monitors(self) -> List[Dict[str, Any]]:
-        """Get all monitor configurations"""
-        return self.monitors
-
-    def get_status(self) -> Dict[str, Any]:
-        """Get current status of all monitors"""
-        return {
-            "monitors": self.monitors,
-            "results": self.results,
-            "running": self.running
-        }
+        logger.info("Uptime Monitor initialized")
 
     async def start(self):
         """Start the monitoring loop"""
@@ -97,89 +56,147 @@ class UptimeMonitor:
         self.running = False
 
     async def _monitor_loop(self):
-        """Main monitoring loop"""
+        """Main monitoring loop - checks every 60 seconds"""
         while self.running:
-            for monitor in self.monitors:
-                try:
-                    result = await self._check_monitor(monitor)
-                    self._store_result(result)
-                except Exception as e:
-                    logger.error(f"Error checking monitor {monitor['name']}: {e}")
+            try:
+                await self._check_all_monitors()
+            except Exception as e:
+                logger.error(f"Error in monitor loop: {e}")
             
-            await asyncio.sleep(60)  # Check every minute for now
+            await asyncio.sleep(60)
 
-    async def _check_monitor(self, monitor: Dict[str, Any]) -> MonitorResult:
-        """Execute a single check"""
+    async def _check_all_monitors(self):
+        """Check all active monitors from database"""
+        from models.database import AsyncSessionLocal, Monitor, User
+        
+        async with AsyncSessionLocal() as session:
+            # Get monitors that need checking
+            now = datetime.utcnow()
+            result = await session.execute(
+                select(Monitor, User).join(User, Monitor.user_id == User.id).where(
+                    Monitor.is_active == True
+                )
+            )
+            monitors_with_users = result.all()
+            
+            for monitor, user in monitors_with_users:
+                # Check if it's time to check this monitor
+                if monitor.last_checked:
+                    next_check = monitor.last_checked + timedelta(seconds=monitor.interval_seconds)
+                    if now < next_check:
+                        continue
+                
+                # Perform check
+                try:
+                    status, response_time = await self._check_monitor(monitor)
+                    
+                    # Detect status change
+                    status_changed = monitor.last_status and monitor.last_status != status
+                    
+                    # Update monitor
+                    monitor.last_status = status
+                    monitor.last_checked = now
+                    monitor.response_time = response_time
+                    await session.commit()
+                    
+                    # Send alert if status changed
+                    if status_changed:
+                        await self._send_alert(monitor, user, status)
+                        
+                except Exception as e:
+                    logger.error(f"Error checking monitor {monitor.name}: {e}")
+
+    async def _check_monitor(self, monitor) -> tuple[str, float]:
+        """Execute a single check and return (status, response_time_ms)"""
         start_time = time.time()
-        status = "DOWN"
-        status_code = None
-        error = None
+        status = "down"
         
         try:
-            if monitor["type"] == "http":
+            if monitor.monitor_type == "http":
                 async with aiohttp.ClientSession() as session:
-                    async with session.get(monitor["url"], timeout=10) as response:
-                        status_code = response.status
-                        if 200 <= status_code < 400:
-                            status = "UP"
-                        else:
-                            error = f"Status code: {status_code}"
+                    async with session.get(monitor.url, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                        if 200 <= response.status < 400:
+                            status = "up"
                             
-            elif monitor["type"] == "port":
-                host = monitor["host"]
-                port = monitor["port"]
-                reader, writer = await asyncio.open_connection(host, port)
-                status = "UP"
+            elif monitor.monitor_type == "ping":
+                # Simple TCP connection check
+                host = monitor.url.replace("http://", "").replace("https://", "").split("/")[0]
+                reader, writer = await asyncio.wait_for(
+                    asyncio.open_connection(host, 80),
+                    timeout=10
+                )
+                status = "up"
                 writer.close()
                 await writer.wait_closed()
                 
         except Exception as e:
-            error = str(e)
+            logger.warning(f"Monitor {monitor.name} check failed: {e}")
+            status = "down"
             
         duration = (time.time() - start_time) * 1000
-        
-        return MonitorResult(
-            monitor_id=monitor["id"],
-            timestamp=datetime.utcnow(),
-            status=status,
-            response_time_ms=round(duration, 2),
-            status_code=status_code,
-            error=error
-        )
+        return status, round(duration, 2)
 
-    def _store_result(self, result: MonitorResult):
-        """Store check result"""
-        history = self.results.get(result.monitor_id, [])
-        history.append(result)
-        # Keep last 100 results
-        if len(history) > 100:
-            history.pop(0)
-        self.results[result.monitor_id] = history
+    async def _send_alert(self, monitor, user, new_status: str):
+        """Send email alert on status change"""
+        if not self.smtp_user or not self.smtp_password:
+            logger.warning("SMTP not configured, skipping email alert")
+            logger.info(f"ALERT: Monitor '{monitor.name}' ({monitor.url}) is now {new_status.upper()}")
+            return
         
-        if result.status == "DOWN":
-            logger.warning(f"Monitor {result.monitor_id} is DOWN: {result.error}")
+        try:
+            subject = f"🚨 Alert: {monitor.name} is {new_status.upper()}"
+            
+            if new_status == "up":
+                subject = f"✅ Resolved: {monitor.name} is UP"
+                body = f"""
+Hello {user.full_name},
+
+Good news! Your monitored service is back online.
+
+Monitor: {monitor.name}
+URL: {monitor.url}
+Status: UP
+Time: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC
+
+Your service is now responding normally.
+
+Best regards,
+ObservAI Monitoring System
+"""
+            else:
+                body = f"""
+Hello {user.full_name},
+
+Your monitored service is currently down.
+
+Monitor: {monitor.name}
+URL: {monitor.url}
+Status: DOWN
+Time: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC
+
+Please investigate the issue as soon as possible.
+
+Best regards,
+ObservAI Monitoring System
+"""
+            
+            msg = MIMEMultipart()
+            msg['From'] = self.from_email
+            msg['To'] = user.email
+            msg['Subject'] = subject
+            msg.attach(MIMEText(body, 'plain'))
+            
+            # Send email
+            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
+                server.starttls()
+                server.login(self.smtp_user, self.smtp_password)
+                server.send_message(msg)
+            
+            logger.info(f"Alert email sent to {user.email} for monitor {monitor.name}")
+            
+        except Exception as e:
+            logger.error(f"Failed to send alert email: {e}")
 
     def get_status(self) -> List[Dict[str, Any]]:
-        """Get current status of all monitors"""
-        status_list = []
-        for monitor in self.monitors:
-            history = self.results.get(monitor["id"], [])
-            last_result = history[-1] if history else None
-            
-            status_list.append({
-                "id": monitor["id"],
-                "name": monitor["name"],
-                "type": monitor["type"],
-                "url": monitor.get("url") or f"{monitor.get('host')}:{monitor.get('port')}",
-                "status": last_result.status if last_result else "UNKNOWN",
-                "last_check": last_result.timestamp.isoformat() if last_result else None,
-                "response_time": last_result.response_time_ms if last_result else 0,
-                "uptime_24h": 99.9, # Mock for now
-                "history": [
-                    {
-                        "time": r.timestamp.strftime("%H:%M"), 
-                        "value": r.response_time_ms
-                    } for r in history[-20:]
-                ]
-            })
-        return status_list
+        """Get current status - kept for compatibility"""
+        return []
