@@ -121,7 +121,7 @@ const Uptime: React.FC = () => {
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h1 className="text-3xl font-bold text-white mb-2">Uptime Monitoring</h1>
-                        <p className="text-gray-400">Monitor your websites and APIs</p>
+                        <p className="text-white">Monitor your websites and APIs</p>
                     </div>
                     <button
                         onClick={() => setShowAddModal(true)}
@@ -134,9 +134,9 @@ const Uptime: React.FC = () => {
 
                 {/* Monitors Grid */}
                 {loading ? (
-                    <div className="text-center text-gray-400 py-12">Loading monitors...</div>
+                    <div className="text-center text-white py-12">Loading monitors...</div>
                 ) : monitors.length === 0 ? (
-                    <div className="text-center text-gray-400 py-12">
+                    <div className="text-center text-white py-12">
                         <Activity className="w-16 h-16 mx-auto mb-4 opacity-50" />
                         <p className="text-xl mb-2">No monitors configured</p>
                         <p className="text-sm">Click "Add Monitor" to start monitoring your services</p>
