@@ -9,6 +9,7 @@ import Uptime from './pages/Uptime'
 import CostAnalytics from './pages/CostAnalytics'
 import Login from './pages/Login'
 import Signup3D from './pages/Signup3D'
+import OrganizationSettings from './pages/OrganizationSettings'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = React.useState(() => {
@@ -76,6 +77,12 @@ function App() {
           path="/cost"
           element={
             isAuthenticated ? <CostAnalytics /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            isAuthenticated ? <OrganizationSettings /> : <Navigate to="/login" />
           }
         />
       </Routes>

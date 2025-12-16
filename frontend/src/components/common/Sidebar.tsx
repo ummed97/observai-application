@@ -38,6 +38,7 @@ const Sidebar: React.FC = () => {
 
   const userEmail = localStorage.getItem('user_email') || 'User';
   const userInitial = userEmail.charAt(0).toUpperCase();
+  const orgName = localStorage.getItem('org_name') || 'Personal Workspace';
 
   return (
     <div className="w-64 bg-gray-900 text-white flex flex-col h-full">
@@ -47,7 +48,7 @@ const Sidebar: React.FC = () => {
           <Activity className="w-8 h-8 text-blue-500" />
           <div>
             <h1 className="text-xl font-bold">ObservAI</h1>
-            <p className="text-xs text-gray-400">Platform v1.0</p>
+            <p className="text-xs text-gray-400">{orgName}</p>
           </div>
         </div>
       </div>
@@ -117,16 +118,14 @@ const Sidebar: React.FC = () => {
                 <span className="font-medium">Personalization</span>
               </button>
 
-              <button
-                onClick={() => {
-                  setShowUserMenu(false);
-                  // Add settings handler here
-                }}
+              <Link
+                to="/settings"
+                onClick={() => setShowUserMenu(false)}
                 className="flex items-center space-x-3 px-4 py-3 hover:bg-gray-700 transition-colors text-gray-300 hover:text-white w-full text-left"
               >
                 <Settings className="w-5 h-5" />
                 <span className="font-medium">Settings</span>
-              </button>
+              </Link>
 
               {/* Help */}
               <button

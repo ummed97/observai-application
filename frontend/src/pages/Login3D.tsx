@@ -32,6 +32,7 @@ export const Login3D: React.FC = () => {
                 localStorage.setItem('auth_token', data.access_token);
                 localStorage.setItem('user_email', email);
                 if (data.org_id) localStorage.setItem('org_id', data.org_id);
+                if (data.org_name) localStorage.setItem('org_name', data.org_name);
                 if (data.role) localStorage.setItem('user_role', data.role);
                 window.location.href = '/dashboard';
             } else {

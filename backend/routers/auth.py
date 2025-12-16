@@ -30,6 +30,7 @@ class Token(BaseModel):
     access_token: str
     token_type: str
     org_id: str = None
+    org_name: str = None
     role: str = None
 
 @router.post("/register", response_model=Token)
@@ -90,6 +91,7 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
         "access_token": access_token, 
         "token_type": "bearer",
         "org_id": new_org.id,
+        "org_name": new_org.name,
         "role": "owner"
     }
 
@@ -108,15 +110,19 @@ async def login(user_data: UserLogin, db: AsyncSession = Depends(get_db)):
     
     # Fetch User's Organization (Default to first one found)
     # In future: Allow user to select org or pass org_id in login
-    stmt = select(OrganizationMember).where(OrganizationMember.user_id == user.id)
+    # We need to join with Organization table to get the name
+    stmt = select(OrganizationMember, Organization).join(Organization).where(OrganizationMember.user_id == user.id)
     result = await db.execute(stmt)
-    membership = result.scalars().first()
+    row = result.first() # Returns (OrganizationMember, Organization) tuple
     
     org_id = None
+    org_name = None
     role = None
     
-    if membership:
+    if row:
+        membership, organization = row
         org_id = membership.organization_id
+        org_name = organization.name
         role = membership.role
     
     # Create access token
@@ -132,5 +138,6 @@ async def login(user_data: UserLogin, db: AsyncSession = Depends(get_db)):
         "access_token": access_token, 
         "token_type": "bearer",
         "org_id": org_id,
+        "org_name": org_name,
         "role": role
     }
