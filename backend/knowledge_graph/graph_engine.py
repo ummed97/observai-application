@@ -487,3 +487,69 @@ class KnowledgeGraphEngine:
             )
             dependencies = [record["dep_id"] for record in result]
             return {"node_id": node_id, "dependencies": dependencies}
+
+    async def get_system_summary(self, org_id: str) -> Dict[str, Any]:
+        """
+        Get a summary of the system for AI context
+        Returns resource counts by type and location
+        """
+        summary = {
+            "total_resources": 0,
+            "by_type": {},
+            "by_location": {},
+            "status": "healthy" # Default
+        }
+        
+        # Try Neo4j first
+        if self.driver:
+            try:
+                with self.driver.session() as session:
+                    # Count by type
+                    result = session.run(
+                        """
+                        MATCH (n:Resource {tenant_id: $org_id})
+                        RETURN n.type as type, count(n) as count, collect(distinct n.location) as locations
+                        """,
+                        org_id=org_id
+                    )
+                    
+                    for record in result:
+                        r_type = record["type"]
+                        count = record["count"]
+                        locations = record["locations"]
+                        
+                        summary["total_resources"] += count
+                        summary["by_type"][r_type] = count
+                        
+                        for loc in locations:
+                            if loc:
+                                summary["by_location"][loc] = summary["by_location"].get(loc, 0) + 1
+                                
+                    return summary
+            except Exception as e:
+                logger.error(f"Error getting summary from Neo4j: {e}")
+                # Fall through to Postgres
+        
+        # Fallback to Postgres
+        try:
+            from models.database import AsyncSessionLocal, TopologyNode
+            from sqlalchemy import select, func
+            
+            async with AsyncSessionLocal() as session:
+                # Count by type
+                result = await session.execute(
+                    select(TopologyNode.type, func.count(TopologyNode.id))
+                    .where(TopologyNode.tenant_id == org_id)
+                    .group_by(TopologyNode.type)
+                )
+                
+                rows = result.all()
+                for r_type, count in rows:
+                    summary["total_resources"] += count
+                    summary["by_type"][r_type] = count
+                    
+                return summary
+                
+        except Exception as e:
+            logger.error(f"Error getting summary from Postgres: {e}")
+            return summary

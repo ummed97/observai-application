@@ -323,6 +323,21 @@ async def get_node_dependencies(node_id: str, depth: int = 3, user=Depends(get_c
 async def natural_language_query(request: NLQueryRequest, user=Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     """Process natural language query"""
     try:
+        # Inject system summary into context
+        org_id = user.get("org_id")
+        system_summary = await knowledge_graph.get_system_summary(org_id)
+        
+        # Ensure context exists
+        if not request.context:
+            request.context = {}
+            
+        request.context["system_summary"] = system_summary
+        request.context["user_info"] = {
+            "name": user.get("sub"),
+            "role": user.get("role"),
+            "org_id": org_id
+        }
+        
         result = await agent_orchestrator.process_nl_query(request.query, request.context)
         
         # Save to chat history (non-blocking, don't fail the query if this fails)
