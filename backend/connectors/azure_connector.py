@@ -47,31 +47,55 @@ class AzureConnector:
 
     async def fetch_resources(self):
         """
-        Fetch all resources using Azure Resource Graph (ARG)
-        For MVP, we'll just list resources via ResourceManagementClient
+        Fetch all resources using Azure Resource Graph (ARG) with KQL
         """
         try:
-            # 1. Get all subscriptions
+            from azure.mgmt.resourcegraph import ResourceGraphClient
+            from azure.mgmt.resourcegraph.models import QueryRequest
+            
+            # Initialize ARG Client
+            arg_client = ResourceGraphClient(self.credential)
+            
+            # KQL Query to get all resources with relevant fields
+            query = """
+            Resources
+            | project id, name, type, location, tags, subscriptionId, resourceGroup, properties
+            | limit 1000
+            """
+            
+            # We need to query across all subscriptions the SP has access to
+            # First, list subscriptions
             sub_client = SubscriptionClient(self.credential)
-            subs = list(sub_client.subscriptions.list())
+            subs = [s.subscription_id for s in sub_client.subscriptions.list()]
             
-            all_resources = []
+            if not subs:
+                logger.warning("No subscriptions found for this Service Principal")
+                return []
+                
+            # Execute Query
+            request = QueryRequest(
+                subscriptions=subs,
+                query=query
+            )
             
-            for sub in subs:
-                resource_client = ResourceManagementClient(self.credential, sub.subscription_id)
-                # List all resources in subscription
-                resources = resource_client.resources.list()
-                for r in resources:
-                    all_resources.append({
-                        "id": r.id,
-                        "name": r.name,
-                        "type": r.type,
-                        "location": r.location,
-                        "tags": r.tags,
-                        "subscription_id": sub.subscription_id
-                    })
+            response = arg_client.resources(request)
             
-            return all_resources
+            # Standardize output
+            resources = []
+            for r in response.data:
+                resources.append({
+                    "id": r.get("id"),
+                    "name": r.get("name"),
+                    "type": r.get("type"),
+                    "location": r.get("location"),
+                    "tags": r.get("tags", {}),
+                    "subscription_id": r.get("subscriptionId"),
+                    "resource_group": r.get("resourceGroup"),
+                    "properties": r.get("properties", {})
+                })
+                
+            return resources
+            
         except Exception as e:
             logger.error(f"Failed to fetch Azure resources: {str(e)}")
             raise e

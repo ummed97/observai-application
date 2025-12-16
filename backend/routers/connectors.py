@@ -113,34 +113,11 @@ async def delete_connector(
     
     return {"message": "Connector deleted"}
 
-async def sync_connector_task(connector_id: str, db_session_factory):
+async def sync_connector_task(connector_id: str):
     # Background task for syncing
-    # We need a fresh session here
-    async with db_session_factory() as db:
-        result = await db.execute(select(Connector).where(Connector.id == connector_id))
-        connector = result.scalar_one_or_none()
-        
-        if not connector:
-            return
-            
-        try:
-            connector.last_sync_status = "syncing"
-            await db.commit()
-            
-            client = AzureConnector(connector.credentials)
-            resources = await client.fetch_resources()
-            
-            # TODO: Ingest resources into Graph/DB
-            print(f"Fetched {len(resources)} resources from Azure")
-            
-            connector.last_sync_status = "success"
-            connector.last_sync_time = datetime.utcnow()
-            await db.commit()
-            
-        except Exception as e:
-            print(f"Sync failed: {e}")
-            connector.last_sync_status = "failed"
-            await db.commit()
+    from data_ingestion.ingestion_service import IngestionService
+    service = IngestionService()
+    await service.process_connector_sync(connector_id)
 
 @router.post("/{connector_id}/sync")
 async def sync_connector(
@@ -157,8 +134,7 @@ async def sync_connector(
     if not connector:
         raise HTTPException(status_code=404, detail="Connector not found")
     
-    # We need to pass the session factory to the background task, not the session itself
-    from models.database import AsyncSessionLocal
-    background_tasks.add_task(sync_connector_task, connector_id, AsyncSessionLocal)
+    # We don't need to pass session factory anymore, IngestionService handles it
+    background_tasks.add_task(sync_connector_task, connector_id)
     
     return {"message": "Sync started"}
