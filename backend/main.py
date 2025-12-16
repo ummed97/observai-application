@@ -34,6 +34,7 @@ from monitors.uptime_monitor import UptimeMonitor
 from routers.auth import router as auth_router
 from routers.chat import router as chat_router
 from routers.connectors import router as connectors_router
+from routers.monitors import router as monitors_router
 
 # Load environment variables
 # We check if OPENAI_API_KEY is missing or looks like a placeholder (often passed by docker-compose defaults)
@@ -129,6 +130,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(chat_router)
 app.include_router(connectors_router)
+app.include_router(monitors_router)
 
 # ===== MODELS =====
 

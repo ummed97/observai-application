@@ -7,7 +7,7 @@ from typing import List, Dict, Any
 from azure.identity import DefaultAzureCredential
 from azure.mgmt.resource import ResourceManagementClient
 from azure.mgmt.monitor import MonitorManagementClient
-from neo4j import GraphDatabase
+from neo4j import AsyncGraphDatabase
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class KnowledgeGraphEngine:
         
         # Initialize Neo4j Driver
         try:
-            self.driver = GraphDatabase.driver(
+            self.driver = AsyncGraphDatabase.driver(
                 self.neo4j_uri, 
                 auth=(self.neo4j_user, self.neo4j_password)
             )
@@ -44,10 +44,10 @@ class KnowledgeGraphEngine:
             logger.error(f"Failed to initialize Azure clients: {e}")
             self.resource_client = None
             self.monitor_client = None
-    
-    def close(self):
+
+    async def close(self):
         if self.driver:
-            self.driver.close()
+            await self.driver.close()
 
     async def discover_azure_resources(self) -> List[Dict[str, Any]]:
         """Discover all Azure resources and sync to Neo4j"""
