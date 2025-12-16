@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layout } from '../components/common/Layout';
+import Layout from '../components/common/Layout';
 import { Building2, Users, Shield, Plus, Settings } from 'lucide-react';
 
 const OrganizationSettings: React.FC = () => {

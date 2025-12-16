@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layout } from '../components/common/Layout';
+import Layout from '../components/common/Layout';
 import { Cloud, Plus, RefreshCw, Trash2, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
 interface Connector {
@@ -160,9 +160,9 @@ const Integrations: React.FC = () => {
                                         </div>
                                     </div>
                                     <div className={`px-2 py-1 rounded-full text-xs font-medium ${connector.last_sync_status === 'success' ? 'bg-green-50 text-green-700' :
-                                            connector.last_sync_status === 'failed' ? 'bg-red-50 text-red-700' :
-                                                connector.last_sync_status === 'syncing' ? 'bg-blue-50 text-blue-700' :
-                                                    'bg-gray-100 text-gray-600'
+                                        connector.last_sync_status === 'failed' ? 'bg-red-50 text-red-700' :
+                                            connector.last_sync_status === 'syncing' ? 'bg-blue-50 text-blue-700' :
+                                                'bg-gray-100 text-gray-600'
                                         }`}>
                                         {connector.last_sync_status || 'Pending'}
                                     </div>
