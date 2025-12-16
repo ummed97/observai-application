@@ -8,6 +8,7 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 export const Signup3D: React.FC = () => {
     const navigate = useNavigate();
     const [fullName, setFullName] = useState('');
+    const [orgName, setOrgName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -47,17 +48,24 @@ export const Signup3D: React.FC = () => {
                 body: JSON.stringify({
                     full_name: fullName,
                     email,
-                    password
+                    password,
+                    org_name: orgName || undefined
                 }),
             });
 
             const data = await response.json();
 
-            if (response.ok) {
+            if (response.ok && data.access_token) {
+                // Auto-login
+                localStorage.setItem('auth_token', data.access_token);
+                localStorage.setItem('user_email', email);
+                if (data.org_id) localStorage.setItem('org_id', data.org_id);
+                if (data.role) localStorage.setItem('user_role', data.role);
+
                 setSuccess(true);
                 setTimeout(() => {
-                    navigate('/login');
-                }, 2000);
+                    window.location.href = '/dashboard';
+                }, 1500);
             } else {
                 setError(data.detail || 'Signup failed. Please try again.');
             }
@@ -132,6 +140,17 @@ export const Signup3D: React.FC = () => {
                                     onChange={(e) => setFullName(e.target.value)}
                                     className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
                                     placeholder="Enter your full name"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Organization Name <span className="text-gray-400 font-normal">(Optional)</span></label>
+                                <input
+                                    type="text"
+                                    value={orgName}
+                                    onChange={(e) => setOrgName(e.target.value)}
+                                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                                    placeholder="e.g. Acme Corp"
                                 />
                             </div>
 

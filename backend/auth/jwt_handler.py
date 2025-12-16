@@ -83,13 +83,15 @@ def decode_access_token(token: str) -> Dict[str, Any]:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-def create_user_token(user_id: str, email: str, is_superuser: bool = False) -> str:
+def create_user_token(user_id: str, email: str, org_id: Optional[str] = None, role: Optional[str] = None, is_superuser: bool = False) -> str:
     """
-    Create an access token for a user
+    Create an access token for a user with organization context
 
     Args:
         user_id: User's unique identifier
         email: User's email
+        org_id: Current organization ID context
+        role: User's role in the organization
         is_superuser: Whether user has superuser privileges
 
     Returns:
@@ -98,6 +100,8 @@ def create_user_token(user_id: str, email: str, is_superuser: bool = False) -> s
     token_data = {
         "sub": user_id,
         "email": email,
+        "org_id": org_id,
+        "role": role,
         "is_superuser": is_superuser
     }
     return create_access_token(token_data)
@@ -124,5 +128,7 @@ def validate_token(token: str) -> Dict[str, Any]:
     return {
         "user_id": user_id,
         "email": payload.get("email"),
+        "org_id": payload.get("org_id"),
+        "role": payload.get("role"),
         "is_superuser": payload.get("is_superuser", False)
     }
