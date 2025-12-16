@@ -34,6 +34,7 @@ azure-mgmt-costmanagement==4.0.1
 azure-mgmt-resource==23.0.1
 azure-core==1.29.5
 azure-monitor-query==1.2.0
+azure-mgmt-resourcegraph==8.0.0
 
 # ===== Authentication & Security =====
 python-jose[cryptography]==3.3.0
