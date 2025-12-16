@@ -31,18 +31,17 @@ class DataCollector:
         
         # Initialize database connection pool
         try:
+            # Use the main application database URL
+            from models.database import DATABASE_URL
+            
             self.db_pool = await asyncpg.create_pool(
-                host="timescaledb",
-                port=5432,
-                user="observai",
-                password="observai",
-                database="metrics",
+                dsn=DATABASE_URL,
                 min_size=5,
                 max_size=20
             )
-            logger.info("Connected to TimescaleDB")
+            logger.info("Connected to PostgreSQL (Metrics)")
         except Exception as e:
-            logger.error(f"Failed to connect to TimescaleDB: {e}")
+            logger.error(f"Failed to connect to PostgreSQL: {e}")
         
         # Start background collection tasks
         asyncio.create_task(self._flush_metrics_periodically())
@@ -88,11 +87,11 @@ class DataCollector:
         return all(field in metric for field in required_fields)
     
     async def _store_metric(self, metric: Dict[str, Any]):
-        """Store metric in TimescaleDB"""
+        """Store metric in PostgreSQL"""
         try:
             query = """
-                INSERT INTO metrics (timestamp, source, metric_name, value, labels)
-                VALUES ($1, $2, $3, $4, $5)
+                INSERT INTO metrics (id, timestamp, source, metric_name, value, labels, tenant_id)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
             """
             
             # Convert timestamp to timezone-naive if it has timezone info
@@ -102,16 +101,19 @@ class DataCollector:
             
             # Convert labels dict to JSON string
             import json
+            import uuid
             labels = metric.get("labels", {})
             labels_json = json.dumps(labels) if isinstance(labels, dict) else labels
             
             await self.db_pool.execute(
                 query,
+                str(uuid.uuid4()),
                 timestamp,
                 metric.get("source"),
                 metric.get("metric_name"),
                 metric.get("value"),
-                labels_json
+                labels_json,
+                metric.get("tenant_id")
             )
             
         except Exception as e:
@@ -161,11 +163,8 @@ class DataCollector:
                 await asyncio.sleep(60)  # Flush every minute
                 
                 # Collect Azure Metrics periodically
-                if self.azure_collector.enabled:
-                    azure_metrics = await self.azure_collector.collect_metrics()
-                    if azure_metrics:
-                        await self.ingest_metrics(azure_metrics)
-                        logger.info(f"Collected {len(azure_metrics)} Azure metrics")
+                # Logic to iterate over connectors and fetch metrics would go here
+                # For now, we'll keep it simple or integrate with IngestionService
                 
                 # Process buffered metrics
                 for metric_name, metrics in self.metrics_buffer.items():

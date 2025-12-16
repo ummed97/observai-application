@@ -99,3 +99,38 @@ class AzureConnector:
         except Exception as e:
             logger.error(f"Failed to fetch Azure resources: {str(e)}")
             raise e
+    async def fetch_metrics(self, resource_id: str, metric_names: list, time_range: str = "PT1H"):
+        """
+        Fetch metrics for a specific resource from Azure Monitor
+        """
+        try:
+            from azure.mgmt.monitor import MonitorManagementClient
+            
+            # Initialize Monitor Client
+            monitor_client = MonitorManagementClient(self.credential, self.tenant_id)
+            
+            # Get metrics
+            metrics_data = monitor_client.metrics.list(
+                resource_uri=resource_id,
+                timespan=time_range,
+                interval="PT1M",
+                metricnames=",".join(metric_names),
+                aggregation="Average"
+            )
+            
+            results = []
+            for item in metrics_data.value:
+                for timeseries in item.timeseries:
+                    for data in timeseries.data:
+                        results.append({
+                            "timestamp": data.time_stamp,
+                            "metric_name": item.name.value,
+                            "value": data.average,
+                            "unit": item.unit
+                        })
+                        
+            return results
+            
+        except Exception as e:
+            logger.error(f"Failed to fetch metrics for {resource_id}: {str(e)}")
+            return []
