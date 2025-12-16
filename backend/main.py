@@ -24,10 +24,13 @@ from pydantic import BaseModel, Field
 import jwt
 
 from auth.jwt_handler import validate_token
+from auth.dependencies import get_current_user
+from models.database import get_db
 from agents.orchestrator import AgentOrchestrator
 from data_ingestion.collector import DataCollector
 from data_ingestion.app_insights_collector import AppInsightsCollector
 from knowledge_graph.graph_engine import KnowledgeGraphEngine
+from monitors.uptime_monitor import UptimeMonitor
 from routers.auth import router as auth_router
 from routers.chat import router as chat_router
 
@@ -57,6 +60,7 @@ agent_orchestrator: Optional[AgentOrchestrator] = None
 data_collector: Optional[DataCollector] = None
 app_insights_collector: Optional[AppInsightsCollector] = None
 knowledge_graph: Optional[KnowledgeGraphEngine] = None
+uptime_service: Optional[UptimeMonitor] = None
 websocket_connections: List[WebSocket] = []
 
 # Security
@@ -67,7 +71,7 @@ ALGORITHM = "HS256"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan management"""
-    global agent_orchestrator, data_collector, app_insights_collector, knowledge_graph
+    global agent_orchestrator, data_collector, app_insights_collector, knowledge_graph, uptime_service
 
     logger.info("Starting AI-Agentic Observability Platform...")
 
@@ -84,6 +88,7 @@ async def lifespan(app: FastAPI):
     data_collector = DataCollector()
     app_insights_collector = AppInsightsCollector()
     knowledge_graph = KnowledgeGraphEngine()
+    uptime_service = UptimeMonitor()
     
     # Store orchestrator in app state for routers
     app.state.orchestrator = agent_orchestrator
