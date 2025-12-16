@@ -147,14 +147,18 @@ class KnowledgeGraphEngine:
         }
         return type_mapping.get(azure_type, "service")
     
-    async def _get_nodes_from_postgres(self) -> List[Dict[str, Any]]:
+    async def _get_nodes_from_postgres(self, org_id: str = None) -> List[Dict[str, Any]]:
         """Fallback: Get topology nodes from PostgreSQL"""
         try:
             from models.database import AsyncSessionLocal, TopologyNode
             from sqlalchemy import select
             
             async with AsyncSessionLocal() as session:
-                result = await session.execute(select(TopologyNode))
+                query = select(TopologyNode)
+                if org_id:
+                    query = query.where(TopologyNode.tenant_id == org_id)
+                
+                result = await session.execute(query)
                 nodes = result.scalars().all()
                 
                 return [
@@ -172,46 +176,48 @@ class KnowledgeGraphEngine:
             logger.error(f"Error fetching nodes from PostgreSQL: {e}")
             return []
 
-    async def get_all_nodes(self) -> List[Dict[str, Any]]:
+    async def get_all_nodes(self, org_id: str = None) -> List[Dict[str, Any]]:
         """Get all topology nodes from Neo4j, fallback to PostgreSQL"""
         if not self.driver:
             logger.info("Neo4j not available, using PostgreSQL")
-            return await self._get_nodes_from_postgres()
+            return await self._get_nodes_from_postgres(org_id)
 
         try:
             with self.driver.session() as session:
-                result = session.run(
-                    """
+                # Filter by tenant_id if provided
+                query = """
                     MATCH (n:Resource)
+                    WHERE $org_id IS NULL OR n.tenant_id = $org_id
                     RETURN n.id as node_id, n.name as name, n.type as type, n.status as status, n.resource_group as resource_group
-                    """
-                )
+                """
+                
+                result = session.run(query, org_id=org_id)
                 nodes = [dict(record) for record in result]
                 
                 # If Neo4j is empty, fallback to PostgreSQL
                 if not nodes:
                     logger.info("Neo4j empty, falling back to PostgreSQL")
-                    return await self._get_nodes_from_postgres()
+                    return await self._get_nodes_from_postgres(org_id)
                 
                 return nodes
         except Exception as e:
             logger.error(f"Error fetching nodes from Neo4j: {e}")
-            return await self._get_nodes_from_postgres()
+            return await self._get_nodes_from_postgres(org_id)
 
-    async def get_full_graph(self) -> Dict[str, Any]:
+    async def get_full_graph(self, org_id: str = None) -> Dict[str, Any]:
         """Get complete topology graph from Neo4j"""
-        nodes = await self.get_all_nodes()
+        nodes = await self.get_all_nodes(org_id)
         
         # Fetch relationships
         edges = []
         if self.driver:
             with self.driver.session() as session:
-                result = session.run(
-                    """
+                query = """
                     MATCH (a)-[r]->(b)
+                    WHERE ($org_id IS NULL OR a.tenant_id = $org_id) AND ($org_id IS NULL OR b.tenant_id = $org_id)
                     RETURN a.id as source, b.id as target, type(r) as type
-                    """
-                )
+                """
+                result = session.run(query, org_id=org_id)
                 edges = [dict(record) for record in result]
         
         return {"nodes": nodes, "edges": edges}
