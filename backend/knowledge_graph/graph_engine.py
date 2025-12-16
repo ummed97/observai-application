@@ -240,6 +240,11 @@ class KnowledgeGraphEngine:
                 "name": "Cache",
                 "type": "redis",
                 "status": "healthy",
+                "resource_group": "rg-prod",
+                "dependencies": []
+            }
+        ]
+
     def close(self):
         if self.driver:
             self.driver.close()
