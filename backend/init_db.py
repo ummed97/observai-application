@@ -22,7 +22,17 @@ async def init_db():
         await conn.run_sync(Base.metadata.create_all)
         print("SQLAlchemy tables created successfully")
     
-    # TRANSACTION 2: Execute init.sql (seed data and additional setup)
+    # TRANSACTION 2: Schema Migrations (SaaS)
+    # Add organization_id to monitors if missing
+    async with engine.begin() as conn:
+        print("Checking for schema migrations...")
+        try:
+            await conn.execute(text("ALTER TABLE monitors ADD COLUMN IF NOT EXISTS organization_id VARCHAR REFERENCES organizations(id);"))
+            print("Migration: Added organization_id to monitors table")
+        except Exception as e:
+            print(f"Migration warning (monitors): {e}")
+
+    # TRANSACTION 3: Execute init.sql (seed data and additional setup)
     # If this fails, at least the tables from Transaction 1 are preserved
     try:
         async with engine.begin() as conn:
@@ -53,7 +63,7 @@ async def init_db():
         print(f"Warning: init.sql execution had errors: {e}")
         print("Tables are still created, continuing...")
     
-    # TRANSACTION 3: Ensure chat_history table exists (fallback)
+    # TRANSACTION 4: Ensure chat_history table exists (fallback)
     async with engine.begin() as conn:
         print("Ensuring chat_history table exists...")
         await conn.execute(text("""

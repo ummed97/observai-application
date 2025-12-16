@@ -22,6 +22,43 @@ class User(Base):
     is_superuser = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    organization_memberships = relationship("OrganizationMember", back_populates="user")
+
+class Organization(Base):
+    """SaaS Organizations (Tenants)"""
+    __tablename__ = "organizations"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String, nullable=False)
+    slug = Column(String, unique=True, nullable=False, index=True)
+    subscription_plan = Column(String, default="free")  # free, pro, enterprise
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    members = relationship("OrganizationMember", back_populates="organization")
+    monitors = relationship("Monitor", back_populates="organization")
+
+class OrganizationMember(Base):
+    """User membership in Organizations with RBAC"""
+    __tablename__ = "organization_members"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    organization_id = Column(String, ForeignKey('organizations.id'), nullable=False, index=True)
+    user_id = Column(String, ForeignKey('users.id'), nullable=False, index=True)
+    role = Column(String, default="viewer")  # owner, admin, editor, viewer
+    joined_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    organization = relationship("Organization", back_populates="members")
+    user = relationship("User", back_populates="organization_memberships")
+
+    __table_args__ = (
+        Index('idx_org_user_role', 'organization_id', 'user_id', unique=True),
+    )
 
 class ChatHistory(Base):
     """AI Query chat history per user"""
@@ -216,6 +253,10 @@ class Monitor(Base):
     response_time = Column(Float)  # milliseconds
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Multi-tenancy
+    organization_id = Column(String, ForeignKey('organizations.id'), nullable=True, index=True)
+    organization = relationship("Organization", back_populates="monitors")
 
 
 class AuditLog(Base):
