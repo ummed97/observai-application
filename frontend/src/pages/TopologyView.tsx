@@ -348,6 +348,9 @@ export const TopologyView: React.FC = () => {
       <div className="flex-1 relative overflow-hidden bg-slate-50 h-full w-full">
         {/* Toolbar */}
         <div className="absolute top-4 left-4 z-10 flex flex-col gap-2 bg-white p-2 rounded-lg shadow-md border border-gray-200">
+          <button onClick={fetchTopologyData} className="p-2 hover:bg-gray-100 rounded" title="Refresh Data">
+            <LayoutIcon size={20} className="text-gray-600" />
+          </button>
           <button onClick={handleZoomIn} className="p-2 hover:bg-gray-100 rounded" title="Zoom In">
             <ZoomIn size={20} className="text-gray-600" />
           </button>
@@ -358,6 +361,25 @@ export const TopologyView: React.FC = () => {
             <Maximize size={20} className="text-gray-600" />
           </button>
         </div>
+
+        {/* Empty State */}
+        {!loading && graphData.nodes.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center z-0 pointer-events-none">
+            <div className="text-center p-8 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-lg max-w-md pointer-events-auto">
+              <Cloud className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900">No Resources Found</h3>
+              <p className="text-gray-500 mt-2 mb-6">
+                Connect your cloud provider to start visualizing your infrastructure.
+              </p>
+              <a
+                href="/integrations"
+                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Go to Integrations
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* Legend */}
         <div className="absolute top-4 right-4 z-10 bg-white p-4 rounded-lg shadow-md border border-gray-200 max-w-xs">

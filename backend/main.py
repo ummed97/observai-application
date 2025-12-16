@@ -293,17 +293,19 @@ async def trigger_agent(agent_id: str, context: Dict[str, Any], user=Depends(get
 
 @app.get("/api/v1/topology/nodes", response_model=List[TopologyNode])
 async def get_topology_nodes(user=Depends(get_current_user)):
-    """Get all topology nodes"""
+    """Get all topology nodes for current org"""
     try:
-        return await knowledge_graph.get_all_nodes()
+        org_id = user.get("org_id")
+        return await knowledge_graph.get_all_nodes(org_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/v1/topology/graph")
 async def get_topology_graph(user=Depends(get_current_user)):
-    """Get complete topology graph"""
+    """Get complete topology graph for current org"""
     try:
-        return await knowledge_graph.get_full_graph()
+        org_id = user.get("org_id")
+        return await knowledge_graph.get_full_graph(org_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
