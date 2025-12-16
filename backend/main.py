@@ -189,24 +189,6 @@ from auth.dependencies import get_current_user, security
 
 # ===== DATABASE =====
 
-async def get_db():
-    async with AsyncSessionLocal() as session:
-        yield session
-
-# ===== ROUTERS =====
-from routers import auth, uptime, security, monitors
-from monitors.uptime_monitor import UptimeMonitor
-
-app.include_router(auth.router)
-app.include_router(uptime.router)
-app.include_router(security.router)
-app.include_router(monitors.router)
-
-# Initialize Uptime Monitor
-uptime_service = UptimeMonitor()
-
-# ===== HEALTH CHECK =====
-
 @app.get("/health")
 async def health_check():
     """Platform health check"""

@@ -41,6 +41,7 @@ class Organization(Base):
     # Relationships
     members = relationship("OrganizationMember", back_populates="organization")
     monitors = relationship("Monitor", back_populates="organization")
+    connectors = relationship("Connector", back_populates="organization")
 
 class OrganizationMember(Base):
     """User membership in Organizations with RBAC"""
@@ -257,6 +258,24 @@ class Monitor(Base):
     # Multi-tenancy
     organization_id = Column(String, ForeignKey('organizations.id'), nullable=True, index=True)
     organization = relationship("Organization", back_populates="monitors")
+
+class Connector(Base):
+    """Cloud Provider Connectors (e.g. Azure Service Principals)"""
+    __tablename__ = "connectors"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    organization_id = Column(String, ForeignKey('organizations.id'), nullable=False, index=True)
+    name = Column(String, nullable=False)
+    provider = Column(String, nullable=False)  # azure, aws, gcp
+    credentials = Column(JSON, nullable=False)  # Encrypted/Obfuscated in prod
+    is_active = Column(Boolean, default=True)
+    last_sync_status = Column(String)  # success, failed, syncing
+    last_sync_time = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    organization = relationship("Organization", back_populates="connectors")
 
 
 class AuditLog(Base):

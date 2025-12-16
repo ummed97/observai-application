@@ -32,7 +32,19 @@ async def init_db():
         except Exception as e:
             print(f"Migration warning (monitors): {e}")
 
-    # TRANSACTION 3: Execute init.sql (seed data and additional setup)
+    # TRANSACTION 3: Create Connectors table (SaaS Phase 2)
+    async with engine.begin() as conn:
+        print("Checking for connectors table...")
+        try:
+            # We rely on Base.metadata.create_all in Transaction 1 for new installs
+            # But for existing installs, we might need to create it explicitly if create_all skips existing DBs
+            # However, create_all checks for table existence, so it should be fine.
+            # Just in case, we can force a check or specific column add if we modify it later.
+            pass 
+        except Exception as e:
+            print(f"Migration warning (connectors): {e}")
+
+    # TRANSACTION 4: Execute init.sql (seed data and additional setup)
     # If this fails, at least the tables from Transaction 1 are preserved
     try:
         async with engine.begin() as conn:
