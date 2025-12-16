@@ -12,7 +12,8 @@ import {
   HelpCircle,
   User,
   ChevronRight,
-  Shield
+  Shield,
+  Cloud
 } from 'lucide-react';
 
 const Sidebar: React.FC = () => {
@@ -32,6 +33,7 @@ const Sidebar: React.FC = () => {
     { path: '/security', icon: Shield, label: 'Security' },
     { path: '/uptime', icon: Activity, label: 'Uptime Monitor' },
     { path: '/cost', icon: DollarSign, label: 'Cost Analytics' },
+    { path: '/integrations', icon: Cloud, label: 'Integrations' },
   ];
 
   const isActive = (path: string) => location.pathname === path;

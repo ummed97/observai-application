@@ -10,6 +10,7 @@ import CostAnalytics from './pages/CostAnalytics'
 import Login from './pages/Login'
 import Signup3D from './pages/Signup3D'
 import OrganizationSettings from './pages/OrganizationSettings'
+import Integrations from './pages/Integrations'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = React.useState(() => {
@@ -83,6 +84,12 @@ function App() {
           path="/settings"
           element={
             isAuthenticated ? <OrganizationSettings /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/integrations"
+          element={
+            isAuthenticated ? <Integrations /> : <Navigate to="/login" />
           }
         />
       </Routes>
