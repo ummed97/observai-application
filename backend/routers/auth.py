@@ -16,11 +16,13 @@ from auth.jwt_handler import (
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 
+from typing import Optional
+
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
     full_name: str
-    org_name: str = None  # Optional custom org name
+    org_name: Optional[str] = None  # Optional custom org name
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -29,9 +31,9 @@ class UserLogin(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
-    org_id: str = None
-    org_name: str = None
-    role: str = None
+    org_id: Optional[str] = None
+    org_name: Optional[str] = None
+    role: Optional[str] = None
 
 @router.post("/register", response_model=Token)
 async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):

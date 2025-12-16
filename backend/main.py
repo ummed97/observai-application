@@ -33,6 +33,7 @@ from knowledge_graph.graph_engine import KnowledgeGraphEngine
 from monitors.uptime_monitor import UptimeMonitor
 from routers.auth import router as auth_router
 from routers.chat import router as chat_router
+from routers.connectors import router as connectors_router
 
 # Load environment variables
 # We check if OPENAI_API_KEY is missing or looks like a placeholder (often passed by docker-compose defaults)
@@ -127,6 +128,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth_router)
 app.include_router(chat_router)
+app.include_router(connectors_router)
 
 # ===== MODELS =====
 
