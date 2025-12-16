@@ -132,3 +132,14 @@ def validate_token(token: str) -> Dict[str, Any]:
         "role": payload.get("role"),
         "is_superuser": payload.get("is_superuser", False)
     }
+
+from fastapi import Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+security = HTTPBearer()
+
+def get_current_user_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Dict[str, Any]:
+    """
+    Dependency to get the current user token payload
+    """
+    return validate_token(credentials.credentials)
