@@ -298,14 +298,20 @@ class AgentOrchestrator:
         self,
         start_date: datetime,
         end_date: datetime,
-        group_by: str = "service"
+        group_by: str = "service",
+        credentials: Optional[Dict[str, str]] = None,
+        subscription_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """Get cost analysis"""
-        return await self.agents["cost"].analyze_costs(start_date, end_date, group_by)
+        return await self.agents["cost"].analyze_costs(start_date, end_date, group_by, credentials, subscription_id)
     
-    async def detect_cost_waste(self) -> Dict[str, Any]:
+    async def detect_cost_waste(
+        self,
+        credentials: Optional[Dict[str, str]] = None,
+        subscription_id: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Detect cost waste"""
-        return await self.agents["cost"].detect_waste()
+        return await self.agents["cost"].detect_waste(credentials, subscription_id)
     
     async def predict_capacity(self, service: str, horizon_days: int) -> Dict[str, Any]:
         """Predict capacity needs"""

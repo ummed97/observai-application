@@ -89,9 +89,33 @@ class CostAgent:
     async def shutdown(self):
         self.status = "stopped"
     
-    async def analyze_costs(self, start_date: datetime, end_date: datetime, group_by: str) -> Dict[str, Any]:
+    async def analyze_costs(self, start_date: datetime, end_date: datetime, group_by: str, credentials: Optional[Dict[str, str]] = None, subscription_id: Optional[str] = None) -> Dict[str, Any]:
         """Analyze cost data with caching to avoid rate limits"""
-        if not self.enabled:
+        
+        # Determine if we can use real Azure data
+        use_azure = False
+        client = None
+        sub_id = None
+        
+        if credentials and subscription_id:
+            try:
+                from azure.identity import ClientSecretCredential
+                cred = ClientSecretCredential(
+                    client_id=credentials.get("client_id"),
+                    client_secret=credentials.get("client_secret"),
+                    tenant_id=credentials.get("tenant_id")
+                )
+                client = CostManagementClient(cred)
+                sub_id = subscription_id
+                use_azure = True
+            except Exception as e:
+                logger.error(f"Failed to initialize Azure client with provided credentials: {e}")
+        elif self.enabled:
+            client = self.cost_client
+            sub_id = self.subscription_id
+            use_azure = True
+            
+        if not use_azure:
             # Fallback to mock data if Azure is not configured
             return {
                 "mode": "mock",
@@ -114,8 +138,9 @@ class CostAgent:
         # This ensures the same cache key is used even if milliseconds differ on refresh
         start_date_str = start_date.strftime("%Y-%m-%d")
         end_date_str = end_date.strftime("%Y-%m-%d")
+        # Include subscription ID in cache key for multi-tenancy
         cache_key = hashlib.md5(
-            f"{start_date_str}_{end_date_str}_{group_by}".encode()
+            f"{start_date_str}_{end_date_str}_{group_by}_{sub_id}".encode()
         ).hexdigest()
         
         # Check cache first
@@ -125,7 +150,7 @@ class CostAgent:
 
         try:
             # Query Azure Cost Management for current period
-            scope = f"/subscriptions/{self.subscription_id}"
+            scope = f"/subscriptions/{sub_id}"
             
             # Helper for daily query
             async def query_daily(s_date, e_date):
@@ -143,7 +168,7 @@ class CostAgent:
                         }
                     }
                 }
-                return self.cost_client.query.usage(scope, parameters=query_params)
+                return client.query.usage(scope, parameters=query_params)
 
             # Helper for service breakdown (Total over period)
             async def query_breakdown(s_date, e_date):
@@ -164,7 +189,7 @@ class CostAgent:
                         ]
                     }
                 }
-                return self.cost_client.query.usage(scope, parameters=query_params)
+                return client.query.usage(scope, parameters=query_params)
 
             # 1. Get Current Period Data with Daily Granularity for Trend Chart
             logger.info(f"Querying Azure Cost from {start_date} to {end_date}")
@@ -291,13 +316,13 @@ class CostAgent:
             logger.exception("Full stack trace for analyze_costs:")
             return {"error": str(e)}
     
-    async def detect_waste(self) -> Dict[str, Any]:
+    async def detect_waste(self, credentials: Optional[Dict[str, str]] = None, subscription_id: Optional[str] = None) -> Dict[str, Any]:
         """Detect cost waste based on heuristics from actual spend"""
         self.optimizations_found += 1
         
         # Default fallback
         waste_data = {
-            "mode": "mock" if not self.enabled else "real",
+            "mode": "mock" if not (self.enabled or credentials) else "real",
             "total_waste": 0.0,
             "opportunities": []
         }
@@ -307,7 +332,7 @@ class CostAgent:
             end_date = datetime.utcnow()
             start_date = end_date - timedelta(days=30)
             
-            cost_data = await self.analyze_costs(start_date, end_date, "service")
+            cost_data = await self.analyze_costs(start_date, end_date, "service", credentials, subscription_id)
             
             if "error" in cost_data:
                 logger.error(f"Could not fetch cost data for waste detection: {cost_data['error']}")

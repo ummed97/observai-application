@@ -380,19 +380,84 @@ async def get_cost_summary(
     start_date: datetime,
     end_date: datetime,
     group_by: str = "service",
-    user=Depends(get_current_user)
+    user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     """Get cost summary with grouping"""
     try:
-        return await agent_orchestrator.get_cost_analysis(start_date, end_date, group_by)
+        # Fetch Azure Connector for this org
+        from models.database import Connector
+        from sqlalchemy import select
+        
+        result = await db.execute(
+            select(Connector).where(
+                Connector.organization_id == user["org_id"],
+                Connector.provider == "azure",
+                Connector.is_active == True
+            )
+        )
+        connector = result.scalars().first()
+        
+        credentials = None
+        subscription_id = None
+        
+        if connector:
+            credentials = connector.credentials
+            # Extract subscription ID from credentials or fetch it if stored separately
+            # For now, we assume it might be in credentials or we can't use it without it
+            # The AzureConnector stores client_id, client_secret, tenant_id.
+            # We need subscription_id for Cost Management.
+            # Let's assume it's stored in credentials for now, or we need to update Connector model/logic
+            # to store subscription_id explicitly.
+            # Based on previous code, AzureConnector fetches resources across all subscriptions.
+            # But Cost Management usually requires a specific scope (Subscription or Management Group).
+            # We'll try to find a subscription ID from the fetched resources or require it in credentials.
+            # For this implementation, let's assume 'subscription_id' is added to credentials during setup
+            # or we pick the first one available if we had a way to list them.
+            # For MVP, let's check if it's in credentials.
+            subscription_id = credentials.get("subscription_id")
+            
+        return await agent_orchestrator.get_cost_analysis(
+            start_date, 
+            end_date, 
+            group_by,
+            credentials=credentials,
+            subscription_id=subscription_id
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/v1/cost/waste")
-async def get_cost_waste(user=Depends(get_current_user)):
+async def get_cost_waste(
+    user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
     """Get cost waste detection results"""
     try:
-        return await agent_orchestrator.detect_cost_waste()
+        # Fetch Azure Connector for this org
+        from models.database import Connector
+        from sqlalchemy import select
+        
+        result = await db.execute(
+            select(Connector).where(
+                Connector.organization_id == user["org_id"],
+                Connector.provider == "azure",
+                Connector.is_active == True
+            )
+        )
+        connector = result.scalars().first()
+        
+        credentials = None
+        subscription_id = None
+        
+        if connector:
+            credentials = connector.credentials
+            subscription_id = credentials.get("subscription_id")
+
+        return await agent_orchestrator.detect_cost_waste(
+            credentials=credentials,
+            subscription_id=subscription_id
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
