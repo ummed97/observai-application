@@ -27,9 +27,7 @@ CREATE TABLE IF NOT EXISTS metrics (
 CREATE INDEX IF NOT EXISTS idx_metric_time_name ON metrics (timestamp, metric_name);
 CREATE INDEX IF NOT EXISTS idx_metric_source_name ON metrics (source, metric_name);
 
--- TimescaleDB hypertable disabled - not available in standard PostgreSQL
--- This doesn't affect functionality, just disables automatic time-series partitioning
--- SELECT create_hypertable('metrics', 'timestamp', if_not_exists => TRUE);
+SELECT create_hypertable('metrics', 'timestamp', if_not_exists => TRUE);
 
 
 -- Create function for updating updated_at timestamp
