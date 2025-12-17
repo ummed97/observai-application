@@ -35,7 +35,7 @@ class MonitorResponse(BaseModel):
     class Config:
         from_attributes = True
 
-@router.get("/", response_model=List[MonitorResponse])
+@router.get("", response_model=List[MonitorResponse])
 async def get_monitors(
     db: AsyncSession = Depends(get_db),
     token: dict = Depends(get_current_user_token)
@@ -47,7 +47,7 @@ async def get_monitors(
     monitors = result.scalars().all()
     return monitors
 
-@router.post("/", response_model=MonitorResponse)
+@router.post("", response_model=MonitorResponse)
 async def create_monitor(
     monitor_data: MonitorCreate,
     db: AsyncSession = Depends(get_db),
