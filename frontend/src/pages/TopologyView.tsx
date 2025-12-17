@@ -13,7 +13,7 @@ import Topology3D from '../components/topology/3DGraph';
 
 // --- Types ---
 
-interface TopologyNode {
+export interface TopologyNode {
   node_id: string;
   name: string;
   type: string;
@@ -25,13 +25,14 @@ interface TopologyNode {
   // Simulation properties
   x?: number;
   y?: number;
+  vx?: number;
   vy?: number;
   // Filter props
   subscription_id?: string;
   connector_id?: string;
 }
 
-interface TopologyEdge {
+export interface TopologyEdge {
   source: string;
   target: string;
   type: string;
