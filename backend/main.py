@@ -314,8 +314,10 @@ async def get_topology_graph(user=Depends(get_current_user)):
     """Get complete topology graph for current org"""
     try:
         org_id = user.get("org_id")
+        logger.info(f"Fetching topology graph for org: {org_id}")
         return await knowledge_graph.get_full_graph(org_id)
     except Exception as e:
+        logger.error(f"Error in get_topology_graph: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/v1/topology/dependencies/{node_id}")
