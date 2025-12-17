@@ -33,7 +33,7 @@ const Uptime: React.FC = () => {
                 : `http://${window.location.hostname}:8000`;
             const response = await fetch(`${apiUrl}/api/v1/monitors`, {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
                 }
             });
             if (response.ok) {
@@ -64,7 +64,7 @@ const Uptime: React.FC = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
                 },
                 body: JSON.stringify(newMonitor)
             });
@@ -90,7 +90,7 @@ const Uptime: React.FC = () => {
             const response = await fetch(`${apiUrl}/api/v1/monitors/${id}`, {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
                 }
             });
 

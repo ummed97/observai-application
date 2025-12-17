@@ -100,6 +100,14 @@ export const TopologyView: React.FC = () => {
 
       const response = await fetch(`${API_BASE}/api/v1/topology/graph`, { headers });
       const data = await response.json();
+      console.log('Topology Data:', data);
+
+      if (!data || !data.nodes || !Array.isArray(data.nodes)) {
+        console.error('Invalid topology data format:', data);
+        setGraphData({ nodes: [], edges: [] });
+        setLoading(false);
+        return;
+      }
 
       // Initialize positions randomly but centered
       const initializedNodes = data.nodes.map((node: TopologyNode) => ({
