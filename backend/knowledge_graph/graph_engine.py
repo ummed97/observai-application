@@ -93,10 +93,10 @@ class KnowledgeGraphEngine:
         if not self.driver:
             return
 
-        with self.driver.session() as session:
+        async with self.driver.session() as session:
             # Create nodes
             for node in nodes:
-                session.run(
+                await session.run(
                     """
                     MERGE (n:Resource {id: $node_id})
                     SET n.name = $name,
@@ -115,7 +115,7 @@ class KnowledgeGraphEngine:
             
             # Infer and create relationships (Edges)
             # 1. Resource Group containment
-            session.run(
+            await session.run(
                 """
                 MATCH (n:Resource)
                 MERGE (rg:ResourceGroup {name: n.resource_group})
@@ -183,7 +183,7 @@ class KnowledgeGraphEngine:
             return await self._get_nodes_from_postgres(org_id)
 
         try:
-            with self.driver.session() as session:
+            async with self.driver.session() as session:
                 # Filter by tenant_id if provided
                 query = """
                     MATCH (n:Resource)
@@ -191,8 +191,8 @@ class KnowledgeGraphEngine:
                     RETURN n.id as node_id, n.name as name, n.type as type, n.status as status, n.resource_group as resource_group
                 """
                 
-                result = session.run(query, org_id=org_id)
-                nodes = [dict(record) for record in result]
+                result = await session.run(query, org_id=org_id)
+                nodes = [dict(record) async for record in result]
                 
                 # If Neo4j is empty, fallback to PostgreSQL
                 if not nodes:
@@ -211,14 +211,14 @@ class KnowledgeGraphEngine:
         # Fetch relationships
         edges = []
         if self.driver:
-            with self.driver.session() as session:
+            async with self.driver.session() as session:
                 query = """
                     MATCH (a)-[r]->(b)
                     WHERE ($org_id IS NULL OR a.tenant_id = $org_id) AND ($org_id IS NULL OR b.tenant_id = $org_id)
                     RETURN a.id as source, b.id as target, type(r) as type
                 """
-                result = session.run(query, org_id=org_id)
-                edges = [dict(record) for record in result]
+                result = await session.run(query, org_id=org_id)
+                edges = [dict(record) async for record in result]
         
         return {"nodes": nodes, "edges": edges}
 
@@ -483,20 +483,21 @@ class KnowledgeGraphEngine:
         except Exception as e:
             logger.error(f"Neo4j ingestion failed: {e}")
             # Don't raise, just log. Postgres is primary inventory.
+
     async def get_dependencies(self, node_id: str, depth: int) -> Dict[str, Any]:
         """Get node dependencies from Neo4j"""
         if not self.driver:
             return {"node_id": node_id, "dependencies": []}
             
-        with self.driver.session() as session:
-            result = session.run(
+        async with self.driver.session() as session:
+            result = await session.run(
                 """
                 MATCH (n {id: $node_id})-[r*1..2]->(m)
                 RETURN m.id as dep_id
                 """,
                 node_id=node_id
             )
-            dependencies = [record["dep_id"] for record in result]
+            dependencies = [record["dep_id"] async for record in result]
             return {"node_id": node_id, "dependencies": dependencies}
 
     async def get_system_summary(self, org_id: str) -> Dict[str, Any]:
@@ -514,9 +515,9 @@ class KnowledgeGraphEngine:
         # Try Neo4j first
         if self.driver:
             try:
-                with self.driver.session() as session:
+                async with self.driver.session() as session:
                     # Count by type
-                    result = session.run(
+                    result = await session.run(
                         """
                         MATCH (n:Resource {tenant_id: $org_id})
                         RETURN n.type as type, count(n) as count, collect(distinct n.location) as locations
@@ -524,7 +525,7 @@ class KnowledgeGraphEngine:
                         org_id=org_id
                     )
                     
-                    for record in result:
+                    async for record in result:
                         r_type = record["type"]
                         count = record["count"]
                         locations = record["locations"]
