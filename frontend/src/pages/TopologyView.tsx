@@ -47,8 +47,8 @@ const NODE_RADIUS = 25;
 
 // --- Helper Functions ---
 
-const getNodeIcon = (type: string) => {
-  const lowerType = type.toLowerCase();
+const getNodeIcon = (type: string | null | undefined) => {
+  const lowerType = (type || 'server').toLowerCase();
   if (lowerType.includes('database') || lowerType.includes('sql') || lowerType.includes('cosmos')) return Database;
   if (lowerType.includes('storage') || lowerType.includes('disk')) return HardDrive;
   if (lowerType.includes('network') || lowerType.includes('vnet') || lowerType.includes('ip')) return Network;
@@ -60,8 +60,8 @@ const getNodeIcon = (type: string) => {
   return Server;
 };
 
-const getStatusColor = (status: string) => {
-  switch (status.toLowerCase()) {
+const getStatusColor = (status: string | null | undefined) => {
+  switch ((status || 'unknown').toLowerCase()) {
     case 'healthy': return '#10b981'; // green-500
     case 'warning': return '#f59e0b'; // yellow-500
     case 'critical': return '#ef4444'; // red-500
@@ -299,6 +299,8 @@ export const TopologyView: React.FC = () => {
     return simulationNodes.map(node => {
       const isSelected = selectedNode?.node_id === node.node_id;
       const Icon = getNodeIcon(node.type);
+      const nodeName = node.name || 'Unknown Resource';
+      const nodeStatus = node.status || 'unknown';
 
       return (
         <g
@@ -313,7 +315,7 @@ export const TopologyView: React.FC = () => {
           <circle
             r={NODE_RADIUS}
             fill="white"
-            stroke={isSelected ? '#2563eb' : getStatusColor(node.status)}
+            stroke={isSelected ? '#2563eb' : getStatusColor(nodeStatus)}
             strokeWidth={isSelected ? 3 : 2}
             className="shadow-sm"
           />
@@ -321,7 +323,7 @@ export const TopologyView: React.FC = () => {
           {/* Icon */}
           <foreignObject x={-12} y={-12} width={24} height={24} className="pointer-events-none">
             <div className="flex items-center justify-center h-full w-full">
-              <Icon size={16} color={getStatusColor(node.status)} />
+              <Icon size={16} color={getStatusColor(nodeStatus)} />
             </div>
           </foreignObject>
 
@@ -333,7 +335,7 @@ export const TopologyView: React.FC = () => {
               className="text-[10px] font-medium fill-gray-600 select-none pointer-events-none"
               style={{ textShadow: '0 1px 2px rgba(255,255,255,0.8)' }}
             >
-              {node.name.length > 20 ? node.name.substring(0, 18) + '...' : node.name}
+              {nodeName.length > 20 ? nodeName.substring(0, 18) + '...' : nodeName}
             </text>
           )}
         </g>
@@ -432,8 +434,8 @@ export const TopologyView: React.FC = () => {
                   {React.createElement(getNodeIcon(selectedNode.type), { size: 20, className: "text-blue-600" })}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 leading-tight">{selectedNode.name}</h3>
-                  <span className="text-xs text-gray-500 capitalize">{selectedNode.type}</span>
+                  <h3 className="font-semibold text-gray-900 leading-tight">{selectedNode.name || 'Unknown Resource'}</h3>
+                  <span className="text-xs text-gray-500 capitalize">{selectedNode.type || 'unknown'}</span>
                 </div>
               </div>
               <button
@@ -450,7 +452,7 @@ export const TopologyView: React.FC = () => {
                   <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Status</span>
                   <div className="mt-1 flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: getStatusColor(selectedNode.status) }}></div>
-                    <span className="text-sm font-medium capitalize text-gray-700">{selectedNode.status}</span>
+                    <span className="text-sm font-medium capitalize text-gray-700">{selectedNode.status || 'unknown'}</span>
                   </div>
                 </div>
 
@@ -459,16 +461,16 @@ export const TopologyView: React.FC = () => {
                   <div className="mt-1 grid grid-cols-1 gap-2">
                     <div className="bg-gray-50 p-2 rounded text-xs">
                       <span className="text-gray-500">Resource Group:</span>
-                      <div className="font-medium text-gray-900 truncate">{selectedNode.resource_group}</div>
+                      <div className="font-medium text-gray-900 truncate">{selectedNode.resource_group || 'N/A'}</div>
                     </div>
                     <div className="bg-gray-50 p-2 rounded text-xs">
                       <span className="text-gray-500">Location:</span>
-                      <div className="font-medium text-gray-900">{selectedNode.location}</div>
+                      <div className="font-medium text-gray-900">{selectedNode.location || 'N/A'}</div>
                     </div>
                   </div>
                 </div>
 
-                {Object.keys(selectedNode.metadata).length > 0 && (
+                {selectedNode.metadata && Object.keys(selectedNode.metadata).length > 0 && (
                   <div>
                     <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Metadata</span>
                     <div className="mt-1 space-y-1">
