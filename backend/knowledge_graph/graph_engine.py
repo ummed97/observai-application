@@ -176,7 +176,7 @@ class KnowledgeGraphEngine:
             logger.error(f"Error fetching nodes from PostgreSQL: {e}")
             return []
 
-    async def get_all_nodes(self, org_id: str = None) -> List[Dict[str, Any]]:
+    async def get_all_nodes(self, org_id: str = None, subscription_id: str = None, resource_group: str = None, connector_id: str = None) -> List[Dict[str, Any]]:
         """Get all topology nodes from Neo4j, fallback to PostgreSQL"""
         if not self.driver:
             logger.info("Neo4j not available, using PostgreSQL")
@@ -184,18 +184,21 @@ class KnowledgeGraphEngine:
 
         try:
             async with self.driver.session() as session:
-                # Filter by tenant_id if provided
+                # Filter by tenant_id and optional filters
                 query = """
                     MATCH (n:Resource)
-                    WHERE $org_id IS NULL OR n.tenant_id = $org_id
-                    RETURN n.id as node_id, n.name as name, n.type as type, n.status as status, n.resource_group as resource_group
+                    WHERE ($org_id IS NULL OR n.tenant_id = $org_id)
+                    AND ($subscription_id IS NULL OR n.subscriptionId = $subscription_id)
+                    AND ($resource_group IS NULL OR n.resourceGroup = $resource_group)
+                    AND ($connector_id IS NULL OR n.connector_id = $connector_id)
+                    RETURN n.id as node_id, n.name as name, n.type as type, n.status as status, n.resource_group as resource_group, n.subscriptionId as subscription_id, n.location as location, n.connector_id as connector_id
                 """
                 
-                result = await session.run(query, org_id=org_id)
+                result = await session.run(query, org_id=org_id, subscription_id=subscription_id, resource_group=resource_group, connector_id=connector_id)
                 nodes = [dict(record) async for record in result]
                 
-                # If Neo4j is empty, fallback to PostgreSQL
-                if not nodes:
+                # If Neo4j is empty, fallback to PostgreSQL (Note: Postgres fallback doesn't support all filters yet)
+                if not nodes and not (subscription_id or resource_group or connector_id):
                     logger.info("Neo4j empty, falling back to PostgreSQL")
                     return await self._get_nodes_from_postgres(org_id)
                 
@@ -204,9 +207,9 @@ class KnowledgeGraphEngine:
             logger.error(f"Error fetching nodes from Neo4j: {e}")
             return await self._get_nodes_from_postgres(org_id)
 
-    async def get_full_graph(self, org_id: str = None) -> Dict[str, Any]:
+    async def get_full_graph(self, org_id: str = None, subscription_id: str = None, resource_group: str = None, connector_id: str = None) -> Dict[str, Any]:
         """Get complete topology graph from Neo4j"""
-        nodes = await self.get_all_nodes(org_id)
+        nodes = await self.get_all_nodes(org_id, subscription_id, resource_group, connector_id)
         
         # Fetch relationships
         edges = []
@@ -216,9 +219,12 @@ class KnowledgeGraphEngine:
                     query = """
                         MATCH (a)-[r]->(b)
                         WHERE ($org_id IS NULL OR a.tenant_id = $org_id) AND ($org_id IS NULL OR b.tenant_id = $org_id)
+                        AND ($subscription_id IS NULL OR (a.subscriptionId = $subscription_id AND b.subscriptionId = $subscription_id))
+                        AND ($resource_group IS NULL OR (a.resourceGroup = $resource_group AND b.resourceGroup = $resource_group))
+                        AND ($connector_id IS NULL OR (a.connector_id = $connector_id AND b.connector_id = $connector_id))
                         RETURN a.id as source, b.id as target, type(r) as type
                     """
-                    result = await session.run(query, org_id=org_id)
+                    result = await session.run(query, org_id=org_id, subscription_id=subscription_id, resource_group=resource_group, connector_id=connector_id)
                     edges = [dict(record) async for record in result]
             except Exception as e:
                 logger.error(f"Error fetching edges from Neo4j: {e}")
@@ -228,7 +234,7 @@ class KnowledgeGraphEngine:
 
 
 
-    async def ingest_topology(self, resources: list, org_id: str):
+    async def ingest_topology(self, resources: list, org_id: str, connector_id: str = None):
         """
         Ingest resources into Neo4j with tenant isolation
         """
@@ -245,6 +251,7 @@ class KnowledgeGraphEngine:
             n.subscriptionId = r.subscription_id,
             n.resourceGroup = r.resource_group,
             n.tenant_id = $org_id,
+            n.connector_id = $connector_id,
             n.updated_at = datetime()
         
         // Add specific label based on type (e.g., VirtualMachine)
@@ -255,7 +262,7 @@ class KnowledgeGraphEngine:
         
         try:
             async with self.driver.session() as session:
-                await session.run(query, resources=resources, org_id=org_id)
+                await session.run(query, resources=resources, org_id=org_id, connector_id=connector_id)
                 logger.info(f"Ingested {len(resources)} nodes into Neo4j for org {org_id}")
         except Exception as e:
             logger.error(f"Neo4j ingestion failed: {e}")

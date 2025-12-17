@@ -48,7 +48,7 @@ class IngestionService:
                 await self._ingest_to_postgres(db, resources, connector.organization_id)
                 
                 # 4. Ingest into Neo4j (Graph)
-                await self.graph_engine.ingest_topology(resources, connector.organization_id)
+                await self.graph_engine.ingest_topology(resources, connector.organization_id, connector.id)
 
                 # Update success status
                 connector.last_sync_status = "success"
