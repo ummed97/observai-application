@@ -111,7 +111,7 @@ export const TopologyView: React.FC = () => {
   const [dragSubject, setDragSubject] = useState<TopologyNode | null>(null);
 
   // View Mode
-  const [viewMode, setViewMode] = useState<'2d' | '3d'>('3d');
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
 
   // Filters
   const [filters, setFilters] = useState({
@@ -125,6 +125,9 @@ export const TopologyView: React.FC = () => {
     resourceGroups: [] as string[],
     connectors: [] as { id: string; name: string }[]
   });
+
+  // Store all topology data for filtering
+  const [allTopologyData, setAllTopologyData] = useState<GraphData>({ nodes: [], edges: [] });
 
   // Fetch connectors on load
   useEffect(() => {
@@ -204,19 +207,9 @@ export const TopologyView: React.FC = () => {
       setGraphData(data);
       setSimulationNodes(initializedNodes);
 
-      // Populate filter options only on initial load (when no filters active)
-      if (!filters.subscriptionId && !filters.resourceGroup && !filters.connectorId) {
-        const subs = Array.from(new Set(data.nodes.map((n: TopologyNode) => n.metadata?.subscriptionId || n.metadata?.subscription_id).filter(Boolean))) as string[];
-        const rgs = Array.from(new Set(data.nodes.map((n: TopologyNode) => n.resource_group).filter(Boolean))) as string[];
-        // For connectors, we might need a separate API or store it on nodes. 
-        // Assuming nodes have connector_id or we extract from metadata if available.
-        // For now, we'll just use what we have.
-
-        setFilterOptions(prev => ({
-          ...prev,
-          subscriptions: subs,
-          resourceGroups: rgs
-        }));
+      // Store all data for client-side filtering
+      if (!filters.connectorId && !filters.subscriptionId && !filters.resourceGroup) {
+        setAllTopologyData(data);
       }
 
       setLoading(false);
@@ -225,6 +218,45 @@ export const TopologyView: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Update filter options based on selected integration
+  useEffect(() => {
+    if (!allTopologyData.nodes.length) return;
+
+    let filteredNodes = allTopologyData.nodes;
+
+    // Filter by connector if selected
+    if (filters.connectorId) {
+      filteredNodes = filteredNodes.filter(n => n.connector_id === filters.connectorId);
+    }
+
+    // Extract unique subscriptions from filtered nodes
+    const subs = Array.from(
+      new Set(
+        filteredNodes
+          .map((n: TopologyNode) => n.metadata?.subscriptionId || n.metadata?.subscription_id)
+          .filter(Boolean)
+      )
+    ) as string[];
+
+    // Filter by subscription if selected
+    if (filters.subscriptionId) {
+      filteredNodes = filteredNodes.filter(
+        n => (n.metadata?.subscriptionId || n.metadata?.subscription_id) === filters.subscriptionId
+      );
+    }
+
+    // Extract unique resource groups from filtered nodes
+    const rgs = Array.from(
+      new Set(filteredNodes.map((n: TopologyNode) => n.resource_group).filter(Boolean))
+    ) as string[];
+
+    setFilterOptions(prev => ({
+      ...prev,
+      subscriptions: subs,
+      resourceGroups: rgs
+    }));
+  }, [filters.connectorId, filters.subscriptionId, allTopologyData]);
 
   // --- Force Simulation Engine ---
 
@@ -457,7 +489,7 @@ export const TopologyView: React.FC = () => {
       <div className="flex h-full w-full">
         {/* Filter Sidebar */}
         {/* Filter Sidebar */}
-        <div className="w-56 bg-white border-r border-gray-200 flex flex-col h-full z-20 shadow-sm">
+        <div className="w-48 bg-white border-r border-gray-200 flex flex-col h-full z-20 shadow-sm">
           <div className="p-4 border-b border-gray-100">
             <h2 className="font-semibold text-gray-800 flex items-center gap-2">
               <Filter size={18} /> Filters
@@ -514,23 +546,21 @@ export const TopologyView: React.FC = () => {
 
 
         <div className="flex-1 relative overflow-hidden bg-slate-50 h-full w-full">
-          {/* Toolbar (Only for 2D) */}
-          {viewMode === '2d' && (
-            <div className="absolute top-4 left-4 z-10 flex flex-col gap-2 bg-white p-2 rounded-lg shadow-md border border-gray-200">
-              <button onClick={fetchTopologyData} className="p-2 hover:bg-gray-100 rounded" title="Refresh Data">
-                <LayoutIcon size={20} className="text-gray-600" />
-              </button>
-              <button onClick={handleZoomIn} className="p-2 hover:bg-gray-100 rounded" title="Zoom In">
-                <ZoomIn size={20} className="text-gray-600" />
-              </button>
-              <button onClick={handleZoomOut} className="p-2 hover:bg-gray-100 rounded" title="Zoom Out">
-                <ZoomOut size={20} className="text-gray-600" />
-              </button>
-              <button onClick={handleResetView} className="p-2 hover:bg-gray-100 rounded" title="Reset View">
-                <Maximize size={20} className="text-gray-600" />
-              </button>
-            </div>
-          )}
+          {/* Toolbar */}
+          <div className="absolute top-4 left-4 z-10 flex flex-col gap-2 bg-white p-2 rounded-lg shadow-md border border-gray-200">
+            <button onClick={fetchTopologyData} className="p-2 hover:bg-gray-100 rounded" title="Refresh Data">
+              <LayoutIcon size={20} className="text-gray-600" />
+            </button>
+            <button onClick={handleZoomIn} className="p-2 hover:bg-gray-100 rounded" title="Zoom In">
+              <ZoomIn size={20} className="text-gray-600" />
+            </button>
+            <button onClick={handleZoomOut} className="p-2 hover:bg-gray-100 rounded" title="Zoom Out">
+              <ZoomOut size={20} className="text-gray-600" />
+            </button>
+            <button onClick={handleResetView} className="p-2 hover:bg-gray-100 rounded" title="Reset View">
+              <Maximize size={20} className="text-gray-600" />
+            </button>
+          </div>
 
           {/* Empty State */}
           {!loading && graphData.nodes.length === 0 && (
@@ -563,51 +593,27 @@ export const TopologyView: React.FC = () => {
           </div>
 
           {/* Graph Canvas */}
-          {viewMode === '2d' ? (
-            <div
-              className="w-full h-full cursor-move"
-              onMouseDown={(e) => handleMouseDown(e)}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseUp}
-              onWheel={handleWheel}
+          <div
+            className="w-full h-full cursor-move"
+            onMouseDown={(e) => handleMouseDown(e)}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onWheel={handleWheel}
+          >
+            <svg
+              ref={svgRef}
+              width="100%"
+              height="100%"
+              viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
+              className="w-full h-full"
             >
-              <svg
-                ref={svgRef}
-                width="100%"
-                height="100%"
-                viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
-                className="w-full h-full"
-              >
-                <g transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
-                  {renderEdges()}
-                  {renderNodes()}
-                </g>
-              </svg>
-            </div>
-          ) : (
-            <TopologyErrorBoundary fallback={(reset) => (
-              <div className="flex flex-col items-center justify-center h-full bg-slate-50">
-                <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900">3D View Failed to Load</h3>
-                <p className="text-gray-500 mb-6">There was an error rendering the 3D topology.</p>
-                <button
-                  onClick={() => {
-                    setViewMode('2d');
-                    reset();
-                  }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Switch to 2D View
-                </button>
-              </div>
-            )}>
-              <Topology3D
-                data={graphData}
-                onNodeClick={(node) => setSelectedNode(node)}
-              />
-            </TopologyErrorBoundary>
-          )}
+              <g transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
+                {renderEdges()}
+                {renderNodes()}
+              </g>
+            </svg>
+          </div>
 
           {/* Details Panel (Overlay) */}
           {selectedNode && (
