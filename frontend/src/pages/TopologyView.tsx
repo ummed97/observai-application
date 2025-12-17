@@ -74,6 +74,33 @@ const getStatusColor = (status: string | null | undefined) => {
   }
 };
 
+
+
+class TopologyErrorBoundary extends React.Component<
+  { children: React.ReactNode, fallback: (reset: () => void) => React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("Topology3D Error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback(() => this.setState({ hasError: false }));
+    }
+    return this.props.children;
+  }
+}
+
 export const TopologyView: React.FC = () => {
   // --- State ---
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], edges: [] });
@@ -104,7 +131,7 @@ export const TopologyView: React.FC = () => {
     const fetchConnectors = async () => {
       try {
         const token = localStorage.getItem('auth_token');
-        const response = await fetch(`${API_BASE}/api/v1/connectors`, {
+        const response = await fetch(`${API_BASE}/api/v1/connectors/`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.ok) {
@@ -559,10 +586,27 @@ export const TopologyView: React.FC = () => {
               </svg>
             </div>
           ) : (
-            <Topology3D
-              data={graphData}
-              onNodeClick={(node) => setSelectedNode(node)}
-            />
+            <TopologyErrorBoundary fallback={(reset) => (
+              <div className="flex flex-col items-center justify-center h-full bg-slate-50">
+                <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900">3D View Failed to Load</h3>
+                <p className="text-gray-500 mb-6">There was an error rendering the 3D topology.</p>
+                <button
+                  onClick={() => {
+                    setViewMode('2d');
+                    reset();
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Switch to 2D View
+                </button>
+              </div>
+            )}>
+              <Topology3D
+                data={graphData}
+                onNodeClick={(node) => setSelectedNode(node)}
+              />
+            </TopologyErrorBoundary>
           )}
 
           {/* Details Panel (Overlay) */}
