@@ -211,14 +211,18 @@ class KnowledgeGraphEngine:
         # Fetch relationships
         edges = []
         if self.driver:
-            async with self.driver.session() as session:
-                query = """
-                    MATCH (a)-[r]->(b)
-                    WHERE ($org_id IS NULL OR a.tenant_id = $org_id) AND ($org_id IS NULL OR b.tenant_id = $org_id)
-                    RETURN a.id as source, b.id as target, type(r) as type
-                """
-                result = await session.run(query, org_id=org_id)
-                edges = [dict(record) async for record in result]
+            try:
+                async with self.driver.session() as session:
+                    query = """
+                        MATCH (a)-[r]->(b)
+                        WHERE ($org_id IS NULL OR a.tenant_id = $org_id) AND ($org_id IS NULL OR b.tenant_id = $org_id)
+                        RETURN a.id as source, b.id as target, type(r) as type
+                    """
+                    result = await session.run(query, org_id=org_id)
+                    edges = [dict(record) async for record in result]
+            except Exception as e:
+                logger.error(f"Error fetching edges from Neo4j: {e}")
+                # Return nodes with empty edges if edge fetch fails
         
         return {"nodes": nodes, "edges": edges}
 

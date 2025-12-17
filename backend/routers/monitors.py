@@ -10,7 +10,7 @@ from typing import List, Optional
 from datetime import datetime
 
 from models.database import Monitor, get_db
-from auth.dependencies import get_current_user
+from auth.jwt_handler import get_current_user_token
 
 router = APIRouter(prefix="/api/v1/monitors", tags=["Monitors"])
 
@@ -35,23 +35,23 @@ class MonitorResponse(BaseModel):
     class Config:
         from_attributes = True
 
-@router.get("", response_model=List[MonitorResponse])
+@router.get("/", response_model=List[MonitorResponse])
 async def get_monitors(
-    user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    token: dict = Depends(get_current_user_token)
 ):
     """Get all monitors for the current user"""
     result = await db.execute(
-        select(Monitor).where(Monitor.user_id == user["user_id"])
+        select(Monitor).where(Monitor.user_id == token["user_id"])
     )
     monitors = result.scalars().all()
     return monitors
 
-@router.post("", response_model=MonitorResponse)
+@router.post("/", response_model=MonitorResponse)
 async def create_monitor(
     monitor_data: MonitorCreate,
-    user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    token: dict = Depends(get_current_user_token)
 ):
     """Create a new monitor"""
     # Validate monitor type
@@ -63,11 +63,12 @@ async def create_monitor(
     
     # Create monitor
     new_monitor = Monitor(
-        user_id=user["user_id"],
+        user_id=token["user_id"],
         name=monitor_data.name,
         url=monitor_data.url,
         monitor_type=monitor_data.monitor_type,
-        interval_seconds=monitor_data.interval_seconds
+        interval_seconds=monitor_data.interval_seconds,
+        organization_id=token.get("org_id") # Add org_id if available
     )
     
     db.add(new_monitor)
@@ -79,14 +80,14 @@ async def create_monitor(
 @router.delete("/{monitor_id}")
 async def delete_monitor(
     monitor_id: str,
-    user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    token: dict = Depends(get_current_user_token)
 ):
     """Delete a monitor"""
     result = await db.execute(
         select(Monitor).where(
             Monitor.id == monitor_id,
-            Monitor.user_id == user["user_id"]
+            Monitor.user_id == token["user_id"]
         )
     )
     monitor = result.scalar_one_or_none()
@@ -105,14 +106,14 @@ async def delete_monitor(
 @router.get("/{monitor_id}", response_model=MonitorResponse)
 async def get_monitor(
     monitor_id: str,
-    user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    token: dict = Depends(get_current_user_token)
 ):
     """Get a specific monitor"""
     result = await db.execute(
         select(Monitor).where(
             Monitor.id == monitor_id,
-            Monitor.user_id == user["user_id"]
+            Monitor.user_id == token["user_id"]
         )
     )
     monitor = result.scalar_one_or_none()
