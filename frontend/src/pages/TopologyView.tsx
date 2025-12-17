@@ -473,151 +473,151 @@ export const TopologyView: React.FC = () => {
           </div>
 
         </div>
-      </div>
 
-      <div className="flex-1 relative overflow-hidden bg-slate-50 h-full w-full">
-        {/* Toolbar (Only for 2D) */}
-        {viewMode === '2d' && (
-          <div className="absolute top-4 left-4 z-10 flex flex-col gap-2 bg-white p-2 rounded-lg shadow-md border border-gray-200">
-            <button onClick={fetchTopologyData} className="p-2 hover:bg-gray-100 rounded" title="Refresh Data">
-              <LayoutIcon size={20} className="text-gray-600" />
-            </button>
-            <button onClick={handleZoomIn} className="p-2 hover:bg-gray-100 rounded" title="Zoom In">
-              <ZoomIn size={20} className="text-gray-600" />
-            </button>
-            <button onClick={handleZoomOut} className="p-2 hover:bg-gray-100 rounded" title="Zoom Out">
-              <ZoomOut size={20} className="text-gray-600" />
-            </button>
-            <button onClick={handleResetView} className="p-2 hover:bg-gray-100 rounded" title="Reset View">
-              <Maximize size={20} className="text-gray-600" />
-            </button>
-          </div>
-        )}
 
-        {/* Empty State */}
-        {!loading && graphData.nodes.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center z-0 pointer-events-none">
-            <div className="text-center p-8 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-lg max-w-md pointer-events-auto">
-              <Cloud className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900">No Resources Found</h3>
-              <p className="text-gray-500 mt-2 mb-6">
-                Connect your cloud provider to start visualizing your infrastructure.
-              </p>
-              <a
-                href="/integrations"
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Go to Integrations
-              </a>
-            </div>
-          </div>
-        )}
-
-        {/* Legend */}
-        <div className="absolute top-4 right-4 z-10 bg-white p-4 rounded-lg shadow-md border border-gray-200 max-w-xs">
-          <h3 className="font-semibold text-sm text-gray-900 mb-2">Legend</h3>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-green-500"></div> Healthy</div>
-            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-yellow-500"></div> Warning</div>
-            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-500"></div> Critical</div>
-            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-slate-400"></div> Unknown</div>
-          </div>
-        </div>
-
-        {/* Graph Canvas */}
-        {viewMode === '2d' ? (
-          <div
-            className="w-full h-full cursor-move"
-            onMouseDown={(e) => handleMouseDown(e)}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onWheel={handleWheel}
-          >
-            <svg
-              ref={svgRef}
-              width="100%"
-              height="100%"
-              viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
-              className="w-full h-full"
-            >
-              <g transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
-                {renderEdges()}
-                {renderNodes()}
-              </g>
-            </svg>
-          </div>
-        ) : (
-          <Topology3D
-            data={graphData}
-            onNodeClick={(node) => setSelectedNode(node)}
-          />
-        )}
-
-        {/* Details Panel (Overlay) */}
-        {selectedNode && (
-          <div className="absolute bottom-4 right-4 w-80 bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col max-h-[50vh] animate-in slide-in-from-bottom-4">
-            <div className="p-4 border-b border-gray-100 flex justify-between items-start">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-50 rounded-lg">
-                  {React.createElement(getNodeIcon(selectedNode.type), { size: 20, className: "text-blue-600" })}
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 leading-tight">{selectedNode.name || 'Unknown Resource'}</h3>
-                  <span className="text-xs text-gray-500 capitalize">{selectedNode.type || 'unknown'}</span>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedNode(null)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                ×
+        <div className="flex-1 relative overflow-hidden bg-slate-50 h-full w-full">
+          {/* Toolbar (Only for 2D) */}
+          {viewMode === '2d' && (
+            <div className="absolute top-4 left-4 z-10 flex flex-col gap-2 bg-white p-2 rounded-lg shadow-md border border-gray-200">
+              <button onClick={fetchTopologyData} className="p-2 hover:bg-gray-100 rounded" title="Refresh Data">
+                <LayoutIcon size={20} className="text-gray-600" />
+              </button>
+              <button onClick={handleZoomIn} className="p-2 hover:bg-gray-100 rounded" title="Zoom In">
+                <ZoomIn size={20} className="text-gray-600" />
+              </button>
+              <button onClick={handleZoomOut} className="p-2 hover:bg-gray-100 rounded" title="Zoom Out">
+                <ZoomOut size={20} className="text-gray-600" />
+              </button>
+              <button onClick={handleResetView} className="p-2 hover:bg-gray-100 rounded" title="Reset View">
+                <Maximize size={20} className="text-gray-600" />
               </button>
             </div>
+          )}
 
-            <div className="p-4 overflow-y-auto">
-              <div className="space-y-4">
-                <div>
-                  <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Status</span>
-                  <div className="mt-1 flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: getStatusColor(selectedNode.status) }}></div>
-                    <span className="text-sm font-medium capitalize text-gray-700">{selectedNode.status || 'unknown'}</span>
-                  </div>
-                </div>
-
-                <div>
-                  <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Properties</span>
-                  <div className="mt-1 grid grid-cols-1 gap-2">
-                    <div className="bg-gray-50 p-2 rounded text-xs">
-                      <span className="text-gray-500">Resource Group:</span>
-                      <div className="font-medium text-gray-900 truncate">{selectedNode.resource_group || 'N/A'}</div>
-                    </div>
-                    <div className="bg-gray-50 p-2 rounded text-xs">
-                      <span className="text-gray-500">Location:</span>
-                      <div className="font-medium text-gray-900">{selectedNode.location || 'N/A'}</div>
-                    </div>
-                  </div>
-                </div>
-
-                {selectedNode.metadata && Object.keys(selectedNode.metadata).length > 0 && (
-                  <div>
-                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Metadata</span>
-                    <div className="mt-1 space-y-1">
-                      {Object.entries(selectedNode.metadata).slice(0, 5).map(([key, value]) => (
-                        <div key={key} className="flex justify-between text-xs py-1 border-b border-gray-50 last:border-0">
-                          <span className="text-gray-500">{key}:</span>
-                          <span className="text-gray-900 font-medium truncate max-w-[150px]">{String(value)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+          {/* Empty State */}
+          {!loading && graphData.nodes.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center z-0 pointer-events-none">
+              <div className="text-center p-8 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-lg max-w-md pointer-events-auto">
+                <Cloud className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900">No Resources Found</h3>
+                <p className="text-gray-500 mt-2 mb-6">
+                  Connect your cloud provider to start visualizing your infrastructure.
+                </p>
+                <a
+                  href="/integrations"
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Go to Integrations
+                </a>
               </div>
             </div>
+          )}
+
+          {/* Legend */}
+          <div className="absolute top-4 right-4 z-10 bg-white p-4 rounded-lg shadow-md border border-gray-200 max-w-xs">
+            <h3 className="font-semibold text-sm text-gray-900 mb-2">Legend</h3>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-green-500"></div> Healthy</div>
+              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-yellow-500"></div> Warning</div>
+              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-500"></div> Critical</div>
+              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-slate-400"></div> Unknown</div>
+            </div>
           </div>
-        )}
+
+          {/* Graph Canvas */}
+          {viewMode === '2d' ? (
+            <div
+              className="w-full h-full cursor-move"
+              onMouseDown={(e) => handleMouseDown(e)}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              onWheel={handleWheel}
+            >
+              <svg
+                ref={svgRef}
+                width="100%"
+                height="100%"
+                viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
+                className="w-full h-full"
+              >
+                <g transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
+                  {renderEdges()}
+                  {renderNodes()}
+                </g>
+              </svg>
+            </div>
+          ) : (
+            <Topology3D
+              data={graphData}
+              onNodeClick={(node) => setSelectedNode(node)}
+            />
+          )}
+
+          {/* Details Panel (Overlay) */}
+          {selectedNode && (
+            <div className="absolute bottom-4 right-4 w-80 bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col max-h-[50vh] animate-in slide-in-from-bottom-4">
+              <div className="p-4 border-b border-gray-100 flex justify-between items-start">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-50 rounded-lg">
+                    {React.createElement(getNodeIcon(selectedNode.type), { size: 20, className: "text-blue-600" })}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 leading-tight">{selectedNode.name || 'Unknown Resource'}</h3>
+                    <span className="text-xs text-gray-500 capitalize">{selectedNode.type || 'unknown'}</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedNode(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="p-4 overflow-y-auto">
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Status</span>
+                    <div className="mt-1 flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: getStatusColor(selectedNode.status) }}></div>
+                      <span className="text-sm font-medium capitalize text-gray-700">{selectedNode.status || 'unknown'}</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Properties</span>
+                    <div className="mt-1 grid grid-cols-1 gap-2">
+                      <div className="bg-gray-50 p-2 rounded text-xs">
+                        <span className="text-gray-500">Resource Group:</span>
+                        <div className="font-medium text-gray-900 truncate">{selectedNode.resource_group || 'N/A'}</div>
+                      </div>
+                      <div className="bg-gray-50 p-2 rounded text-xs">
+                        <span className="text-gray-500">Location:</span>
+                        <div className="font-medium text-gray-900">{selectedNode.location || 'N/A'}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {selectedNode.metadata && Object.keys(selectedNode.metadata).length > 0 && (
+                    <div>
+                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Metadata</span>
+                      <div className="mt-1 space-y-1">
+                        {Object.entries(selectedNode.metadata).slice(0, 5).map(([key, value]) => (
+                          <div key={key} className="flex justify-between text-xs py-1 border-b border-gray-50 last:border-0">
+                            <span className="text-gray-500">{key}:</span>
+                            <span className="text-gray-900 font-medium truncate max-w-[150px]">{String(value)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
     </Layout >
   );
 };
