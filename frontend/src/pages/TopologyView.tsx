@@ -107,10 +107,21 @@ export const TopologyView: React.FC = () => {
         const response = await fetch(`${API_BASE}/api/v1/connectors`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        const data = await response.json();
-        setFilterOptions(prev => ({ ...prev, connectors: data }));
+        if (response.ok) {
+          const data = await response.json();
+          if (Array.isArray(data)) {
+            setFilterOptions(prev => ({ ...prev, connectors: data }));
+          } else {
+            console.error('Connectors API returned non-array:', data);
+            setFilterOptions(prev => ({ ...prev, connectors: [] }));
+          }
+        } else {
+          console.error('Failed to fetch connectors:', response.status);
+          setFilterOptions(prev => ({ ...prev, connectors: [] }));
+        }
       } catch (error) {
         console.error('Error fetching connectors:', error);
+        setFilterOptions(prev => ({ ...prev, connectors: [] }));
       }
     };
     fetchConnectors();
