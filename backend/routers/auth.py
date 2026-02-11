@@ -130,7 +130,9 @@ async def login(user_data: UserLogin, db: AsyncSession = Depends(get_db)):
         # User has no organization - create a default one
         import uuid
         default_org_name = f"{user.full_name or user.email.split('@')[0]}'s Organization"
-        slug = f"{default_org_name.lower().replace(' ', '-').replace(\"'\", '')}-{str(uuid.uuid4())[:8]}"
+        # Clean the org name for slug (remove spaces and apostrophes)
+        clean_name = default_org_name.lower().replace(' ', '-').replace("'", '')
+        slug = f"{clean_name}-{str(uuid.uuid4())[:8]}"
         
         new_org = Organization(
             name=default_org_name,
