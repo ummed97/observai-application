@@ -126,6 +126,32 @@ async def login(user_data: UserLogin, db: AsyncSession = Depends(get_db)):
         org_id = membership.organization_id
         org_name = organization.name
         role = membership.role
+    else:
+        # User has no organization - create a default one
+        import uuid
+        default_org_name = f"{user.full_name or user.email.split('@')[0]}'s Organization"
+        slug = f"{default_org_name.lower().replace(' ', '-').replace(\"'\", '')}-{str(uuid.uuid4())[:8]}"
+        
+        new_org = Organization(
+            name=default_org_name,
+            slug=slug,
+            subscription_plan="free"
+        )
+        db.add(new_org)
+        await db.flush()
+        
+        # Add user as owner
+        membership = OrganizationMember(
+            organization_id=new_org.id,
+            user_id=user.id,
+            role="owner"
+        )
+        db.add(membership)
+        await db.commit()
+        
+        org_id = new_org.id
+        org_name = new_org.name
+        role = "owner"
     
     # Create access token
     access_token = create_user_token(
@@ -143,3 +169,4 @@ async def login(user_data: UserLogin, db: AsyncSession = Depends(get_db)):
         "org_name": org_name,
         "role": role
     }
+
